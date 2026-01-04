@@ -1,0 +1,26 @@
+{
+  "name": "ircbooks",
+  "version": "1.0.0",
+  "description": "IRC ebook search and download CLI tool",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": ["irc", "ebook", "cli"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "irc-framework": "^4.13.1",
+    "prompts": "^2.4.2",
+    "adm-zip": "^0.5.10"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/prompts": "^2.4.9",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
