@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+// @ts-expect-error - adm-zip has no type definitions
 import AdmZip from 'adm-zip';
 
 export interface DccTransfer {
@@ -79,7 +80,7 @@ export class DccHandler extends EventEmitter {
     let extractedFiles: string[] | undefined;
 
     if (isZip) {
-      extractedFiles = await this.extractZip(filepath, targetDir);
+      extractedFiles = await this._extractZip(filepath, targetDir);
     }
 
     return {
@@ -114,9 +115,9 @@ export class DccHandler extends EventEmitter {
   }
 
   /**
-   * Extract a zip file
+   * Extract a zip file (private implementation)
    */
-  private async extractZip(zipPath: string, targetDir: string): Promise<string[]> {
+  private async _extractZip(zipPath: string, targetDir: string): Promise<string[]> {
     try {
       const zip = new AdmZip(zipPath);
       const zipEntries = zip.getEntries();
@@ -134,6 +135,13 @@ export class DccHandler extends EventEmitter {
     } catch (error) {
       throw new Error(`Failed to extract zip file: ${error}`);
     }
+  }
+
+  /**
+   * Public method to extract a zip file
+   */
+  async extractZip(zipPath: string, targetDir: string): Promise<string[]> {
+    return this._extractZip(zipPath, targetDir);
   }
 
   /**

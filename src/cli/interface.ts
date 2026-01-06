@@ -139,6 +139,14 @@ export class CliInterface {
   }
 
   /**
+   * Show download progress
+   */
+  showDownloadProgress(percentage: number, speed: number): void {
+    const speedMB = (speed / (1024 * 1024)).toFixed(2);
+    console.log(`Progress: ${percentage}% (${speedMB} MB/s)`);
+  }
+
+  /**
    * Show download complete
    */
   showDownloadComplete(filename: string, filepath: string): void {

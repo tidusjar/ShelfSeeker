@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
+// @ts-expect-error - irc-framework has no type definitions
 import IRC from 'irc-framework';
 import { DccHandler, DccDownloadResult } from './dccHandler.js';
+import { DccReceiver } from './dccReceiver.js';
 import { ConnectionStatus } from '../types.js';
 
 export interface IrcConfig {
@@ -22,6 +24,11 @@ export class IrcClient extends EventEmitter {
   private retryCount = 0;
   private maxRetries = 3;
   private retryDelay = 5000;
+  
+  // Progress tracking
+  private progressInterval?: NodeJS.Timeout;
+  private lastProgressTime?: number;
+  private lastProgressBytes: number = 0;
 
   constructor(config: IrcConfig, dccHandler: DccHandler) {
     super();
@@ -30,7 +37,11 @@ export class IrcClient extends EventEmitter {
       nick: config.nick || this.generateNickname()
     };
     this.dccHandler = dccHandler;
-    this.client = new IRC.Client();
+    
+    // Configure client with HexChat-like VERSION for IRCHighway compatibility
+    this.client = new IRC.Client({
+      version: 'HexChat 2.16.1 / Linux 6.0'
+    });
 
     this.setupEventHandlers();
   }
@@ -56,7 +67,7 @@ export class IrcClient extends EventEmitter {
       this.client.join(this.config.channel);
     });
 
-    this.client.on('join', (event) => {
+    this.client.on('join', (event: any) => {
       if (event.nick === this.client.user.nick) {
         this.status = 'joined';
         this.emit('joined', this.config.channel);
@@ -75,35 +86,121 @@ export class IrcClient extends EventEmitter {
       }
     });
 
-    this.client.on('socket error', (err) => {
+    this.client.on('socket error', (err: any) => {
       this.status = 'error';
       this.emit('error', err);
     });
 
-    // Handle DCC transfers
-    this.client.on('dcc.send', async (event: any) => {
-      try {
-        this.emit('dcc_incoming', event.filename);
+    // Handle CTCP DCC requests
+    this.client.on('ctcp request', async (event: any) => {
+      // Handle DCC SEND transfers
+      if (event.type === 'DCC') {
+        const dccInfo = DccReceiver.parseDccSend(event.message);
+        
+        if (!dccInfo) {
+          return;
+        }
 
-        // Determine if this is a search result (zip file) or ebook
-        const isSearchResult = event.filename.toLowerCase().endsWith('.zip');
+        this.emit('dcc_incoming', dccInfo.filename);
 
-        const result = await this.dccHandler.handleTransfer(
-          {
-            filename: event.filename,
-            size: event.size,
-            nick: event.nick,
-            port: event.port,
-            ip: event.ip
-          },
-          event.readable,
-          isSearchResult
-        );
+        try {
+          // Determine output directory
+          const isSearchResult = dccInfo.filename.toLowerCase().endsWith('.zip');
+          const outputPath = isSearchResult ? './.tmp' : './downloads';
 
-        this.emit('dcc_complete', result);
-      } catch (error) {
-        this.emit('dcc_error', error);
+          // Setup progress tracking for book downloads (not search results)
+          let onProgress: ((bytesReceived: number, totalBytes: number) => void) | undefined;
+          
+          if (!isSearchResult) {
+            // Initialize progress tracking
+            this.lastProgressTime = Date.now();
+            this.lastProgressBytes = 0;
+            
+            // Set up periodic progress updates (every 1 second)
+            this.progressInterval = setInterval(() => {
+              // Progress will be emitted by the callback
+            }, 1000);
+            
+            onProgress = (bytesReceived: number, totalBytes: number) => {
+              const now = Date.now();
+              
+              // Calculate speed (bytes per second)
+              const timeDelta = (now - (this.lastProgressTime || now)) / 1000;
+              const bytesDelta = bytesReceived - this.lastProgressBytes;
+              const speed = timeDelta > 0 ? bytesDelta / timeDelta : 0;
+              
+              // Calculate percentage
+              const percentage = totalBytes > 0 ? Math.round((bytesReceived / totalBytes) * 100) : 0;
+              
+              // Emit progress event
+              this.emit('dcc_progress', { 
+                percentage, 
+                speed, 
+                bytesReceived, 
+                totalBytes 
+              });
+              
+              // Update tracking
+              this.lastProgressTime = now;
+              this.lastProgressBytes = bytesReceived;
+            };
+          }
+
+          // Download the file
+          const result = await DccReceiver.downloadFile(
+            dccInfo.filename,
+            dccInfo.ip,
+            dccInfo.port,
+            dccInfo.filesize,
+            outputPath,
+            onProgress
+          );
+          
+          // Clear progress interval
+          if (this.progressInterval) {
+            clearInterval(this.progressInterval);
+            this.progressInterval = undefined;
+          }
+
+          // Process if it's a search result
+          const dccResult: DccDownloadResult = {
+            filename: result.filename,
+            filepath: result.filepath,
+            isZip: isSearchResult,
+            extractedFiles: undefined
+          };
+
+          // If it's a zip file, extract it
+          if (isSearchResult) {
+            const extractedFiles = await this.dccHandler.extractZip(result.filepath, outputPath);
+            dccResult.extractedFiles = extractedFiles;
+          }
+
+          this.emit('dcc_complete', dccResult);
+        } catch (error) {
+          // Clear progress interval on error
+          if (this.progressInterval) {
+            clearInterval(this.progressInterval);
+            this.progressInterval = undefined;
+          }
+          this.emit('dcc_error', error);
+        }
       }
+    });
+
+    // CTCP responses (no action needed, just prevent errors)
+    this.client.on('ctcp response', (event: any) => {
+      // Silent
+    });
+
+    // NOTICE messages (no action needed)
+    this.client.on('notice', (event: any) => {
+      // Silent
+    });
+
+    // PRIVMSG messages (no action needed)
+    this.client.on('privmsg', (event: any) => {
+      // Silent
     });
   }
 

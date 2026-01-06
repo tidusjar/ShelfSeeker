@@ -38,20 +38,48 @@ export class SearchResultParser {
    * @returns Parsed SearchResult or null if line is invalid
    */
   private static parseLine(line: string): SearchResult | null {
-    // Extract the parts: !BotCommand filename ::INFO:: size
-    const match = line.match(/^(![\w]+)\s+(.+?)\s+::INFO::\s+(.+)$/);
-
-    if (!match) {
+    // Extract the parts: Various bot formats:
+    // !BotCommand filename ::INFO:: size
+    // !BotCommand HASH | filename ::INFO:: size
+    // !BotCommand %HASH% filename ::INFO:: size
+    
+    // First, extract bot command (everything from ! to first space)
+    const botCommandMatch = line.match(/^(!\w+)\s+/);
+    if (!botCommandMatch) {
+      return null;
+    }
+    
+    const botCommand = botCommandMatch[1];
+    
+    // Find ::INFO:: separator
+    const infoIndex = line.indexOf('::INFO::');
+    if (infoIndex === -1) {
+      return null;
+    }
+    
+    // Everything after ::INFO:: is the filesize
+    const filesize = line.substring(infoIndex + 8).trim();
+    
+    // Everything between bot command and ::INFO:: is the filename (possibly with hash)
+    let filenamePart = line.substring(botCommandMatch[0].length, infoIndex).trim();
+    
+    // Remove hash/ID patterns:
+    // Pattern 1: "HASH | filename" - remove hash and pipe
+    filenamePart = filenamePart.replace(/^[a-f0-9]+\s*\|\s*/, '');
+    // Pattern 2: "%HASH% filename" - remove percent-encoded hash
+    filenamePart = filenamePart.replace(/^%[A-F0-9]+%\s+/, '');
+    
+    const filename = filenamePart.trim();
+    
+    if (!filename || !filesize) {
       return null;
     }
 
-    const [, botCommand, filename, filesize] = match;
-
     return {
       botCommand: botCommand.trim(),
-      filename: filename.trim(),
-      filesize: filesize.trim(),
-      rawCommand: `${botCommand.trim()} ${filename.trim()}`
+      filename: filename,
+      filesize: filesize,
+      rawCommand: `${botCommand.trim()} ${filename}`
     };
   }
 

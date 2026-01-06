@@ -14,6 +14,7 @@ const IRC_CONFIG = {
 };
 
 const SEARCH_TIMEOUT = 30000; // 30 seconds
+const DOWNLOAD_TIMEOUT = 300000; // 5 minutes - IRC transfers can be slow for large files
 
 /**
  * Main Application
@@ -65,6 +66,10 @@ class IrcBooksApp {
 
     this.ircClient.on('dcc_incoming', (filename: string) => {
       this.cli.showDccIncoming(filename);
+    });
+
+    this.ircClient.on('dcc_progress', (progress: { percentage: number; speed: number; bytesReceived: number; totalBytes: number }) => {
+      this.cli.showDownloadProgress(progress.percentage, progress.speed);
     });
 
     this.ircClient.on('dcc_complete', (result: DccDownloadResult) => {
@@ -185,7 +190,7 @@ class IrcBooksApp {
     this.ircClient.download(result.rawCommand);
 
     // Wait for download with timeout
-    const downloadResult = await this.waitForTransfer('download', SEARCH_TIMEOUT);
+    const downloadResult = await this.waitForTransfer('download', DOWNLOAD_TIMEOUT);
 
     if (!downloadResult) {
       this.cli.showTimeout();
