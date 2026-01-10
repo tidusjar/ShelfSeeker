@@ -1,0 +1,244 @@
+.results-list {
+  margin: 3rem 0;
+}
+
+.results-header {
+  margin-bottom: 2rem;
+}
+
+.results-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.results-title {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  font-family: var(--font-display);
+  margin: 0;
+}
+
+.results-count {
+  font-size: 4rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  line-height: 1;
+  text-shadow: 0 0 20px var(--glow-color);
+}
+
+.results-label {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.results-query {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 0.5rem;
+}
+
+.query-label {
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.query-value {
+  color: var(--accent-secondary);
+  font-style: italic;
+}
+
+.results-border {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-primary),
+    transparent
+  );
+  opacity: 0.5;
+}
+
+/* Results Grid */
+.results-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.result-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-primary);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.result-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 184, 108, 0.05),
+    transparent
+  );
+  transition: width 0.3s ease;
+  pointer-events: none;
+}
+
+.result-card:hover::before {
+  width: 100%;
+}
+
+.result-card:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 30px rgba(255, 184, 108, 0.1);
+}
+
+.result-number {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  min-width: 80px;
+}
+
+.number-hash {
+  font-size: 1rem;
+  opacity: 0.5;
+}
+
+.number-value {
+  color: var(--accent-primary);
+}
+
+.result-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.result-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.result-meta {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.813rem;
+}
+
+.meta-label {
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
+
+.meta-value {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.download-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 10px var(--glow-color);
+}
+
+.download-button:hover {
+  background: var(--phosphor-green);
+  box-shadow: 0 0 20px rgba(80, 250, 123, 0.5);
+}
+
+.download-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.download-text {
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .results-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .results-count {
+    font-size: 3rem;
+  }
+
+  .results-label {
+    font-size: 1.25rem;
+  }
+
+  .result-card {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .result-number {
+    min-width: auto;
+  }
+
+  .download-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .result-meta {
+    gap: 1rem;
+  }
+}
