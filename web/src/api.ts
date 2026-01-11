@@ -4,7 +4,8 @@ import type {
   ConnectionStatus,
   ApiResponse,
   ConfigData,
-  ConfigUpdateResult
+  ConfigUpdateResult,
+  NzbProvider
 } from './types';
 
 const API_BASE = '/api';
@@ -24,11 +25,15 @@ export const api = {
     return response.json();
   },
 
-  async download(command: string): Promise<ApiResponse<{ filename: string }>> {
+  async download(result: SearchResult): Promise<ApiResponse<{ filename: string }>> {
+    const payload = result.source === 'irc'
+      ? { source: 'irc', command: result.command }
+      : { source: 'nzb', nzbUrl: result.nzbUrl, providerId: result.sourceProvider };
+
     const response = await fetch(`${API_BASE}/download`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command }),
+      body: JSON.stringify(payload),
     });
     return response.json();
   },
@@ -54,6 +59,44 @@ export const api = {
 
   async resetConfig(): Promise<ApiResponse<ConfigUpdateResult>> {
     const response = await fetch(`${API_BASE}/config/reset`, {
+      method: 'POST',
+    });
+    return response.json();
+  },
+
+  // NZB Provider Management
+  async getNzbProviders(): Promise<ApiResponse<NzbProvider[]>> {
+    const response = await fetch(`${API_BASE}/nzb/providers`);
+    return response.json();
+  },
+
+  async addNzbProvider(provider: Omit<NzbProvider, 'id' | 'requestsToday' | 'lastResetDate'>): Promise<ApiResponse<NzbProvider>> {
+    const response = await fetch(`${API_BASE}/nzb/providers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(provider),
+    });
+    return response.json();
+  },
+
+  async updateNzbProvider(id: string, updates: Partial<NzbProvider>): Promise<ApiResponse<{ message: string }>> {
+    const response = await fetch(`${API_BASE}/nzb/providers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    return response.json();
+  },
+
+  async deleteNzbProvider(id: string): Promise<ApiResponse<{ message: string }>> {
+    const response = await fetch(`${API_BASE}/nzb/providers/${id}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+
+  async testNzbProvider(id: string): Promise<ApiResponse<{ message: string; resultCount: number }>> {
+    const response = await fetch(`${API_BASE}/nzb/providers/${id}/test`, {
       method: 'POST',
     });
     return response.json();

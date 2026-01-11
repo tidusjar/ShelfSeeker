@@ -13,6 +13,11 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src/**/*", "../src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*",
+    "../src/types.ts",
+    "../src/irc/**/*",
+    "../src/parser/searchResultParser.ts"
+  ],
+  "exclude": ["node_modules", "dist", "../src/**/*.test.ts"]
 }

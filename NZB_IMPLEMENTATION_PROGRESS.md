@@ -1,7 +1,7 @@
 # NZB Newznab Provider Integration - Implementation Progress
 
 **Date Started:** 2026-01-11
-**Current Status:** Phase 4 Complete - Backend Fully Functional (7/14 tasks)
+**Current Status:** Phase 5 Complete - Frontend Data Layer Ready (9/14 tasks)
 
 ## Overview
 
@@ -15,7 +15,7 @@ Adding full NZB Newznab indexer support to enable searching both IRC and NZB sou
 
 ---
 
-## ✅ Completed (7/14 tasks)
+## ✅ Completed (9/14 tasks)
 
 ### Phase 1: Backend Foundation
 
@@ -102,70 +102,28 @@ interface NzbProvider {
 - ✅ Added POST /api/nzb/providers/:id/test (test connection)
 - ✅ All endpoints tested with curl and verified working
 
+#### 8. Update web/src/types.ts ✅
+**File:** `web/src/types.ts` (COMPLETED)
+
+- ✅ Added NzbProvider interface with all required fields
+- ✅ Updated SearchResult interface with `source` and `sourceProvider`
+- ✅ Made `command` optional (IRC only)
+- ✅ Added optional `nzbUrl` and `guid` fields (NZB only)
+
+#### 9. Add NZB API methods to web/src/api.ts ✅
+**File:** `web/src/api.ts` (COMPLETED)
+
+- ✅ Added `getNzbProviders()` method
+- ✅ Added `addNzbProvider()` method
+- ✅ Added `updateNzbProvider()` method
+- ✅ Added `deleteNzbProvider()` method
+- ✅ Added `testNzbProvider()` method
+- ✅ Updated `download()` method to accept SearchResult and route to IRC/NZB
+- ✅ Updated `App.tsx` to pass full result object to download handler
+
 ---
 
-## ⏳ Remaining Tasks (7/14)
-
-### Phase 5: Frontend Data Layer (Priority: MEDIUM)
-
-#### 8. Update web/src/types.ts ⏳
-**File:** `web/src/types.ts`
-
-**Add NzbProvider interface:**
-```typescript
-export interface NzbProvider {
-  id: string;
-  name: string;
-  url: string;
-  apiKey: string;
-  enabled: boolean;
-  categories: number[];
-  priority: number;
-  apiLimit?: number;
-  requestsToday?: number;
-  lastResetDate?: string;
-}
-```
-
-**Update SearchResult interface (lines 1-10):**
-```typescript
-export interface SearchResult {
-  source: 'irc' | 'nzb';      // NEW
-  sourceProvider: string;      // NEW
-  botName: string;
-  bookNumber: number;
-  title: string;
-  author: string;
-  fileType: string;
-  size: string;
-  filename: string;
-  command?: string;            // IRC only
-  nzbUrl?: string;             // NZB only
-  guid?: string;               // NZB only
-}
-```
-
-#### 9. Add NZB API methods to web/src/api.ts ⏳
-**File:** `web/src/api.ts`
-
-**Add methods:**
-```typescript
-async getNzbProviders(): Promise<ApiResponse<NzbProvider[]>>
-async addNzbProvider(provider: Omit<NzbProvider, 'id'>): Promise<ApiResponse<NzbProvider>>
-async updateNzbProvider(id: string, updates: Partial<NzbProvider>): Promise<ApiResponse<{message: string}>>
-async deleteNzbProvider(id: string): Promise<ApiResponse<{message: string}>>
-async testNzbProvider(id: string): Promise<ApiResponse<{message: string, resultCount: number}>>
-```
-
-**Update download method:**
-```typescript
-async download(result: SearchResult): Promise<ApiResponse<{filename: string}>> {
-  const payload = result.source === 'irc'
-    ? { source: 'irc', command: result.command }
-    : { source: 'nzb', nzbUrl: result.nzbUrl, providerId: result.sourceProvider };
-  // ... fetch
-}
-```
+## ⏳ Remaining Tasks (5/14)
 
 ---
 
@@ -274,7 +232,12 @@ curl -X POST http://localhost:3001/api/download \
 - `server/src/server.ts` - All NZB endpoints added ✅
 - `server/src/ircService.test.ts` - Updated for new interface ✅
 
-### ⏳ Frontend Files (Pending)
+### ✅ Frontend Data Layer (Complete)
+- `web/src/types.ts` - Updated SearchResult, added NzbProvider ✅
+- `web/src/api.ts` - Added all NZB provider CRUD methods ✅
+- `web/src/App.tsx` - Updated download handler to pass full result ✅
+
+### ⏳ Frontend UI (Pending)
 **To Create:**
 - `web/src/components/NzbProviderList.tsx` - Provider management UI
 - `web/src/components/NzbProviderForm.tsx` - Add/edit provider form
@@ -282,13 +245,10 @@ curl -X POST http://localhost:3001/api/download \
 - `web/src/components/NzbProviderForm.css` - Styles
 
 **To Modify:**
-- `web/src/types.ts` - Update SearchResult, add NzbProvider
-- `web/src/api.ts` - Add NZB provider methods
 - `web/src/components/SettingsModal.tsx` - Add tabs
 - `web/src/components/SettingsModal.css` - Tab styles
 - `web/src/components/ResultsList.tsx` - Add filtering
 - `web/src/components/ResultsList.css` - Badge styles
-- `web/src/App.tsx` - Update download handler
 
 ---
 
@@ -382,12 +342,14 @@ GET {url}/api?apikey={key}&t=search&q={query}&cat={categories}&extended=1&limit=
 
 ## Notes
 
-- TypeScript compilation works ✅
+- TypeScript compilation works (backend + frontend) ✅
 - Backend fully tested with curl ✅
 - All NZB CRUD endpoints working ✅
 - Unified search operational (graceful error handling) ✅
 - Download routing works for both IRC and NZB ✅
-- Frontend implementation is next priority
+- Frontend types updated with NZB support ✅
+- API client methods added for all NZB operations ✅
+- Next: UI components (provider management, tabs, filtering)
 
 **Last Updated:** 2026-01-11
-**Progress:** 7/14 tasks (50% - Backend Complete)
+**Progress:** 9/14 tasks (64% - Backend + Data Layer Complete)

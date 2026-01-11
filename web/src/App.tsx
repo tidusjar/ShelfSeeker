@@ -62,7 +62,7 @@ function App() {
       status: 'downloading',
     });
 
-    const response = await api.download(result.command);
+    const response = await api.download(result);
 
     if (response.success) {
       setCurrentDownload({
