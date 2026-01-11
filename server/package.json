@@ -1,7 +1,7 @@
 {
-  "name": "ircbooks-server",
+  "name": "shelfseeker-server",
   "version": "1.0.0",
-  "description": "API server for IRC ebook search",
+  "description": "API server for ShelfSeeker multi-source ebook search",
   "main": "dist/server.js",
   "type": "module",
   "scripts": {

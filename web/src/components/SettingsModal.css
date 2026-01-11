@@ -146,26 +146,31 @@
 }
 
 /* NZB Tab Content */
-.nzb-tab-content {
+.nzb-tab-content,
+.downloader-tab-content {
   padding: 0.5rem 0;
   max-height: 60vh;
   overflow-y: auto;
 }
 
-.nzb-tab-content::-webkit-scrollbar {
+.nzb-tab-content::-webkit-scrollbar,
+.downloader-tab-content::-webkit-scrollbar {
   width: 8px;
 }
 
-.nzb-tab-content::-webkit-scrollbar-track {
+.nzb-tab-content::-webkit-scrollbar-track,
+.downloader-tab-content::-webkit-scrollbar-track {
   background: var(--bg-tertiary);
 }
 
-.nzb-tab-content::-webkit-scrollbar-thumb {
+.nzb-tab-content::-webkit-scrollbar-thumb,
+.downloader-tab-content::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border: 2px solid var(--bg-tertiary);
 }
 
-.nzb-tab-content::-webkit-scrollbar-thumb:hover {
+.nzb-tab-content::-webkit-scrollbar-thumb:hover,
+.downloader-tab-content::-webkit-scrollbar-thumb:hover {
   background: var(--accent-primary);
 }
 

@@ -420,3 +420,138 @@ function DownloaderForm({ downloader, onClose }: DownloaderFormProps) {
 }
 
 export default DownloaderForm;
+                value={formData.port}
+                onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 0 })}
+                className={errors.port ? 'error' : ''}
+                min="1"
+                max="65535"
+              />
+              {errors.port && <span className="error-message">{errors.port}</span>}
+            </div>
+
+            <div className="downloader-form-group downloader-form-checkbox">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.ssl}
+                  onChange={(e) => setFormData({ ...formData, ssl: e.target.checked })}
+                />
+                Use SSL (HTTPS)
+              </label>
+            </div>
+          </div>
+
+          {/* Username */}
+          <div className="form-group">
+            <label htmlFor="username">Username *</label>
+            <input
+              type="text"
+              id="username"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              className={errors.username ? 'error' : ''}
+              autoComplete="off"
+            />
+            {errors.username && <span className="error-message">{errors.username}</span>}
+          </div>
+
+          {/* Password */}
+          <div className="form-group">
+            <label htmlFor="password">Password *</label>
+            <input
+              type="password"
+              id="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className={errors.password ? 'error' : ''}
+              autoComplete="new-password"
+            />
+            {errors.password && <span className="error-message">{errors.password}</span>}
+          </div>
+
+          {/* API Key (SABnzbd only) */}
+          {formData.type === 'sabnzbd' && (
+            <div className="form-group">
+              <label htmlFor="apiKey">API Key *</label>
+              <input
+                type="password"
+                id="apiKey"
+                value={formData.apiKey}
+                onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                className={errors.apiKey ? 'error' : ''}
+                placeholder="Found in SABnzbd Settings > General"
+              />
+              {errors.apiKey && <span className="error-message">{errors.apiKey}</span>}
+            </div>
+          )}
+
+          {/* Category (Optional) */}
+          <div className="form-group">
+            <label htmlFor="category">Default Category</label>
+            <input
+              type="text"
+              id="category"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              placeholder="books (optional)"
+            />
+            <span className="downloader-form-hint">
+              Category to assign downloads in {formData.type === 'nzbget' ? 'NZBGet' : 'SABnzbd'}
+            </span>
+          </div>
+
+          {/* Priority (Optional) */}
+          <div className="form-group">
+            <label htmlFor="priority">
+              Default Priority
+              {formData.type === 'nzbget' && <span className="downloader-form-hint"> (-100 to 100)</span>}
+              {formData.type === 'sabnzbd' && <span className="downloader-form-hint"> (-2 to 2)</span>}
+            </label>
+            <input
+              type="number"
+              id="priority"
+              value={formData.priority}
+              onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
+              min={formData.type === 'nzbget' ? -100 : -2}
+              max={formData.type === 'nzbget' ? 100 : 2}
+            />
+          </div>
+
+          {/* Enabled */}
+          <div className="downloader-form-group downloader-form-checkbox">
+            <label>
+              <input
+                type="checkbox"
+                checked={formData.enabled}
+                onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+              />
+              Enable this downloader (disables all others)
+            </label>
+          </div>
+
+          {/* Actions */}
+          <div className="downloader-form-actions">
+            <button
+              type="button"
+              className="downloader-form-btn downloader-form-btn-cancel"
+              onClick={() => onClose(false)}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="downloader-form-btn downloader-form-btn-save"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : downloader ? 'Update' : 'Add Downloader'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+    </AnimatePresence>
+  );
+}
+
+export default DownloaderForm;
