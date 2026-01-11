@@ -54,6 +54,7 @@ echo ""
 
 # Build and start
 echo "🔨 Building Docker image..."
+echo "   (Multi-platform: linux/amd64, linux/arm64, linux/arm/v7)"
 $COMPOSE_CMD build
 
 echo ""
