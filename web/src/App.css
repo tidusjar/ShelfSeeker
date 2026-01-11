@@ -101,7 +101,7 @@
   font-family: var(--font-mono);
   font-size: 0.875rem;
   font-weight: 500;
-  padding: 0.75rem 1.25rem;
+  padding: 0.75rem 2rem;
   background: var(--bg-tertiary);
   color: var(--accent-primary);
   border: 2px solid var(--accent-primary);
@@ -111,6 +111,10 @@
   letter-spacing: 0.05em;
   position: relative;
   overflow: hidden;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .settings-button::before {

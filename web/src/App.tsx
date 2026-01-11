@@ -225,23 +225,6 @@ function App() {
             <DownloadPanel download={currentDownload} />
           )}
         </AnimatePresence>
-
-        {/* Footer */}
-        <footer className="footer">
-          <div className="footer-content">
-            <div className="footer-text">
-              <span className="footer-label">Server:</span>
-              <span className="footer-value">{config?.irc.server || 'Loading...'}</span>
-            </div>
-            <div className="footer-text">
-              <span className="footer-label">Channel:</span>
-              <span className="footer-value">{config?.irc.channel || 'Loading...'}</span>
-            </div>
-            <div className="footer-text footer-glow">
-              {searchResults.length > 0 && `${searchResults.length} results found`}
-            </div>
-          </div>
-        </footer>
       </motion.div>
 
       {/* Settings Modal */}
