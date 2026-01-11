@@ -1,5 +1,6 @@
 import prompts from 'prompts';
 import { SearchResult } from '../types.js';
+import { sortResults, SortOption } from '../utils/sortResults.js';
 
 /**
  * CLI Interface Manager
@@ -109,16 +110,18 @@ export class CliInterface {
   }
 
   /**
-   * Prompt user to select a result
+   * Prompt user to select a result or sort
    */
-  async promptSelection(maxIndex: number): Promise<number | null> {
+  async promptSelection(maxIndex: number): Promise<number | null | 'sort'> {
     const response = await prompts({
-      type: 'number',
+      type: 'text',
       name: 'selection',
-      message: `Select book (1-${maxIndex}, or 0 to search again):`,
-      validate: (value: number) => {
-        if (value < 0 || value > maxIndex) {
-          return `Please enter a number between 0 and ${maxIndex}`;
+      message: `Select book (1-${maxIndex}), 's' to sort, or '0' to search again:`,
+      validate: (value: string) => {
+        if (value === 's' || value === 'S') return true;
+        const num = parseInt(value);
+        if (isNaN(num) || num < 0 || num > maxIndex) {
+          return `Please enter a number between 0 and ${maxIndex}, or 's' to sort`;
         }
         return true;
       }
@@ -128,7 +131,48 @@ export class CliInterface {
       return null;
     }
 
-    return response.selection;
+    if (response.selection === 's' || response.selection === 'S') {
+      return 'sort';
+    }
+
+    return parseInt(response.selection);
+  }
+
+  /**
+   * Prompt user to select sort option
+   */
+  async promptSortOption(): Promise<SortOption | null> {
+    const response = await prompts({
+      type: 'select',
+      name: 'sortBy',
+      message: 'Sort results by:',
+      choices: [
+        { title: 'Relevance (default order)', value: 'relevance' },
+        { title: 'Title (A-Z)', value: 'title' },
+        { title: 'Author (A-Z)', value: 'author' },
+        { title: 'Size (Largest First)', value: 'size' },
+        { title: 'File Type', value: 'type' }
+      ]
+    });
+
+    return response.sortBy ?? null;
+  }
+
+  /**
+   * Sort and display results
+   */
+  sortAndShowResults(results: SearchResult[], sortBy: SortOption): SearchResult[] {
+    const sorted = sortResults(results, sortBy);
+    console.log(`\n✓ Results sorted by ${sortBy}:\n`);
+    
+    sorted.forEach((result, index) => {
+      console.log(
+        `${index + 1}. [${result.botCommand}] ${result.filename} (${result.filesize})`
+      );
+    });
+    console.log();
+    
+    return sorted;
   }
 
   /**

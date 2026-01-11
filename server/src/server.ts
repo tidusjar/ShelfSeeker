@@ -6,6 +6,7 @@ import { IrcService } from './ircService.js';
 import { ConfigService } from './configService.js';
 import { NzbService } from './nzbService.js';
 import { SearchService } from './searchService.js';
+import { DownloaderService } from './downloaderService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,9 @@ const nzbService = new NzbService(configService);
 
 // Search Service - orchestrates unified IRC + NZB searches
 const searchService = new SearchService(ircService, nzbService, configService);
+
+// Downloader Service - handles sending NZBs to downloaders
+const downloaderService = new DownloaderService();
 
 // Routes
 app.post('/api/connect', async (req, res) => {
@@ -294,6 +298,117 @@ app.post('/api/config/reset', async (req, res) => {
           ? 'Configuration reset to defaults'
           : `Configuration reset but failed to reconnect: ${reconnectError}`
       }
+    });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// ============================================================================
+// DOWNLOADER ENDPOINTS
+// ============================================================================
+
+// Get all usenet downloaders
+app.get('/api/downloaders/usenet', (req, res) => {
+  try {
+    const downloaders = configService.getUsenetDownloaders();
+    res.json({ success: true, data: downloaders });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Get enabled usenet downloader
+app.get('/api/downloaders/usenet/enabled', (req, res) => {
+  try {
+    const downloader = configService.getEnabledUsenetDownloader();
+    res.json({ success: true, data: downloader });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Add new usenet downloader
+app.post('/api/downloaders/usenet', async (req, res) => {
+  try {
+    const downloader = await configService.addUsenetDownloader(req.body);
+    res.json({ success: true, data: downloader });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Update usenet downloader
+app.put('/api/downloaders/usenet/:id', async (req, res) => {
+  try {
+    const downloader = await configService.updateUsenetDownloader(req.params.id, req.body);
+    res.json({ success: true, data: downloader });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Delete usenet downloader
+app.delete('/api/downloaders/usenet/:id', async (req, res) => {
+  try {
+    await configService.deleteUsenetDownloader(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Test downloader connection
+app.post('/api/downloaders/usenet/:id/test', async (req, res) => {
+  try {
+    const downloaders = configService.getUsenetDownloaders();
+    const downloader = downloaders.find(d => d.id === req.params.id);
+    
+    if (!downloader) {
+      return res.json({ success: false, error: 'Downloader not found' });
+    }
+
+    const result = await downloaderService.testConnection(downloader);
+    res.json({ 
+      success: result.success, 
+      data: { version: result.version },
+      error: result.success ? undefined : result.message 
+    });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Send NZB to downloader
+app.post('/api/downloaders/send', async (req, res) => {
+  try {
+    const { nzbUrl, title } = req.body;
+
+    if (!nzbUrl || !title) {
+      return res.json({ success: false, error: 'Missing nzbUrl or title' });
+    }
+
+    // Get enabled downloader
+    const downloader = configService.getEnabledUsenetDownloader();
+    if (!downloader) {
+      return res.json({ success: false, error: 'No downloader configured. Please add one in Settings.' });
+    }
+
+    // Send to appropriate downloader
+    if (downloader.type === 'nzbget') {
+      await downloaderService.sendToNZBGet(downloader, nzbUrl, title);
+    } else if (downloader.type === 'sabnzbd') {
+      await downloaderService.sendToSABnzbd(downloader, nzbUrl, title);
+    } else {
+      return res.json({ success: false, error: 'Unknown downloader type' });
+    }
+
+    res.json({ 
+      success: true, 
+      data: { 
+        message: `Sent to ${downloader.name}`,
+        downloaderType: downloader.type 
+      } 
     });
   } catch (error) {
     res.json({ success: false, error: (error as Error).message });

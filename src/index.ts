@@ -220,22 +220,36 @@ class IrcBooksApp {
         continue;
       }
 
-      // Prompt for selection
-      const selection = await this.cli.promptSelection(this.currentSearchResults.length);
+      // Selection loop (allows sorting without re-searching)
+      let currentResults = this.currentSearchResults;
+      while (true) {
+        // Prompt for selection or sort
+        const selection = await this.cli.promptSelection(currentResults.length);
 
-      if (selection === null) {
-        // User cancelled
+        if (selection === null) {
+          // User cancelled
+          return;
+        }
+
+        if (selection === 0) {
+          // User wants to search again
+          break;
+        }
+
+        if (selection === 'sort') {
+          // User wants to sort results
+          const sortBy = await this.cli.promptSortOption();
+          if (sortBy) {
+            currentResults = this.cli.sortAndShowResults(this.currentSearchResults, sortBy);
+          }
+          continue;
+        }
+
+        // Download selected book
+        const selectedResult = currentResults[selection - 1];
+        await this.handleDownload(selectedResult);
         break;
       }
-
-      if (selection === 0) {
-        // User wants to search again
-        continue;
-      }
-
-      // Download selected book
-      const selectedResult = this.currentSearchResults[selection - 1];
-      await this.handleDownload(selectedResult);
     }
   }
 

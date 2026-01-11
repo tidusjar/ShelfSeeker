@@ -415,4 +415,142 @@ export class ConfigService {
     provider.requestsToday = (provider.requestsToday || 0) + 1;
     await this.db.write();
   }
+
+  // ============================================================================
+  // DOWNLOADER MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Validate downloader configuration
+   */
+  private validateDownloader(downloader: Omit<Downloader, 'id'>): ValidationError[] {
+    const errors: ValidationError[] = [];
+
+    if (!downloader.name?.trim()) {
+      errors.push({ field: 'name', message: 'Name is required' });
+    }
+
+    if (!downloader.type) {
+      errors.push({ field: 'type', message: 'Type is required' });
+    }
+
+    if (!downloader.host?.trim()) {
+      errors.push({ field: 'host', message: 'Host is required' });
+    }
+
+    if (!downloader.port || downloader.port < 1 || downloader.port > 65535) {
+      errors.push({ field: 'port', message: 'Port must be between 1 and 65535' });
+    }
+
+    if (!downloader.username?.trim()) {
+      errors.push({ field: 'username', message: 'Username is required' });
+    }
+
+    if (!downloader.password?.trim()) {
+      errors.push({ field: 'password', message: 'Password is required' });
+    }
+
+    // SABnzbd requires API key
+    if (downloader.type === 'sabnzbd' && !downloader.apiKey?.trim()) {
+      errors.push({ field: 'apiKey', message: 'API key is required for SABnzbd' });
+    }
+
+    return errors;
+  }
+
+  /**
+   * Get all usenet downloaders
+   */
+  getUsenetDownloaders(): Downloader[] {
+    if (!this.db?.data?.downloaders?.usenet) {
+      return [];
+    }
+    return JSON.parse(JSON.stringify(this.db.data.downloaders.usenet));
+  }
+
+  /**
+   * Get enabled usenet downloader (only one allowed)
+   */
+  getEnabledUsenetDownloader(): Downloader | null {
+    const downloaders = this.getUsenetDownloaders();
+    const enabled = downloaders.find((d: Downloader) => d.enabled);
+    return enabled || null;
+  }
+
+  /**
+   * Add new usenet downloader
+   */
+  async addUsenetDownloader(downloader: Omit<Downloader, 'id'>): Promise<Downloader> {
+    const errors = this.validateDownloader(downloader);
+    if (errors.length > 0) {
+      throw new Error(`Validation failed: ${errors.map(e => e.message).join(', ')}`);
+    }
+
+    // If this downloader is being enabled, disable all others (only one allowed)
+    if (downloader.enabled) {
+      this.db.data.downloaders.usenet.forEach((d: Downloader) => {
+        d.enabled = false;
+      });
+    }
+
+    const newDownloader: Downloader = {
+      ...downloader,
+      id: crypto.randomUUID(),
+    };
+
+    this.db.data.downloaders.usenet.push(newDownloader);
+    await this.db.write();
+
+    console.log(`✓ Added usenet downloader: ${newDownloader.name} (${newDownloader.type})`);
+    return newDownloader;
+  }
+
+  /**
+   * Update existing usenet downloader
+   */
+  async updateUsenetDownloader(id: string, updates: Partial<Downloader>): Promise<Downloader> {
+    const index = this.db.data.downloaders.usenet.findIndex((d: Downloader) => d.id === id);
+    if (index === -1) {
+      throw new Error('Downloader not found');
+    }
+
+    const current = this.db.data.downloaders.usenet[index];
+    const updated = { ...current, ...updates, id }; // Preserve ID
+
+    const errors = this.validateDownloader(updated);
+    if (errors.length > 0) {
+      throw new Error(`Validation failed: ${errors.map(e => e.message).join(', ')}`);
+    }
+
+    // If this downloader is being enabled, disable all others
+    if (updates.enabled === true) {
+      this.db.data.downloaders.usenet.forEach((d: Downloader, i: number) => {
+        if (i !== index) {
+          d.enabled = false;
+        }
+      });
+    }
+
+    this.db.data.downloaders.usenet[index] = updated;
+    await this.db.write();
+
+    console.log(`✓ Updated usenet downloader: ${updated.name}`);
+    return updated;
+  }
+
+  /**
+   * Delete usenet downloader
+   */
+  async deleteUsenetDownloader(id: string): Promise<void> {
+    const index = this.db.data.downloaders.usenet.findIndex((d: Downloader) => d.id === id);
+    if (index === -1) {
+      throw new Error('Downloader not found');
+    }
+
+    const name = this.db.data.downloaders.usenet[index].name;
+    this.db.data.downloaders.usenet.splice(index, 1);
+    await this.db.write();
+
+    console.log(`✓ Deleted usenet downloader: ${name}`);
+  }
 }

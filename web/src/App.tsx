@@ -75,6 +75,52 @@ function App() {
     setConfig(newConfig);
   };
 
+  const handleSendToDownloader = async (result: SearchResult) => {
+    if (result.source !== 'nzb' || !result.nzbUrl) {
+      console.error('Invalid result for downloader');
+      return;
+    }
+
+    setCurrentDownload({
+      filename: result.title,
+      progress: 0,
+      speed: 'Sending...',
+      status: 'downloading',
+    });
+
+    try {
+      const response = await api.sendToDownloader(result.nzbUrl, result.title);
+
+      if (response.success) {
+        setCurrentDownload({
+          filename: result.title,
+          progress: 100,
+          speed: `Sent to ${response.data?.downloaderType || 'downloader'}`,
+          status: 'complete',
+        });
+
+        // Clear download after 3 seconds
+        setTimeout(() => setCurrentDownload(null), 3000);
+      } else {
+        setCurrentDownload({
+          filename: result.title,
+          progress: 0,
+          speed: response.error || 'Failed to send',
+          status: 'error',
+        });
+        setTimeout(() => setCurrentDownload(null), 5000);
+      }
+    } catch (error) {
+      setCurrentDownload({
+        filename: result.title,
+        progress: 0,
+        speed: 'Network error',
+        status: 'error',
+      });
+      setTimeout(() => setCurrentDownload(null), 5000);
+    }
+  };
+
   return (
     <div className="app">
       {/* Grid Background */}
@@ -144,6 +190,7 @@ function App() {
               <ResultsList
                 results={searchResults}
                 onDownload={handleDownload}
+                onSendToDownloader={handleSendToDownloader}
                 searchQuery={searchQuery}
               />
             </motion.div>

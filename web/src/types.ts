@@ -70,3 +70,20 @@ export interface NzbProvider {
   requestsToday?: number;
   lastResetDate?: string;
 }
+
+export type DownloaderType = 'nzbget' | 'sabnzbd';
+
+export interface Downloader {
+  id: string;
+  name: string;
+  type: DownloaderType;
+  enabled: boolean;
+  host: string;
+  port: number;
+  ssl: boolean;
+  username: string;
+  password: string;
+  apiKey?: string;
+  category?: string;
+  priority?: number;
+}

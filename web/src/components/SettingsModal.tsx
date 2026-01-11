@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api';
 import type { ConfigData, IrcConfig } from '../types';
 import NzbProviderList from './NzbProviderList';
+import DownloaderList from './DownloaderList';
 import './SettingsModal.css';
 
 interface SettingsModalProps {
@@ -20,7 +21,7 @@ function SettingsModal({
   currentConfig,
   isDownloading
 }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'general' | 'irc' | 'nzb'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'irc' | 'nzb' | 'downloaders'>('general');
   const [config, setConfig] = useState<IrcConfig>({
     enabled: true,
     server: '',
@@ -251,6 +252,17 @@ function SettingsModal({
               >
                 <span className="button-brackets">[</span>
                 NZB Providers
+                <span className="button-brackets">]</span>
+              </motion.button>
+              <motion.button
+                type="button"
+                className={`tab-button ${activeTab === 'downloaders' ? 'active' : ''}`}
+                onClick={() => setActiveTab('downloaders')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="button-brackets">[</span>
+                Downloaders
                 <span className="button-brackets">]</span>
               </motion.button>
             </div>
@@ -484,9 +496,13 @@ function SettingsModal({
                 </div>
               </div>
             </form>
-            ) : (
+            ) : activeTab === 'nzb' ? (
               <div className="nzb-tab-content">
                 <NzbProviderList />
+              </div>
+            ) : (
+              <div className="downloader-tab-content">
+                <DownloaderList />
               </div>
             )}
           </motion.div>

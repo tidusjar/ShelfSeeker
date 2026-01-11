@@ -53,9 +53,10 @@ describe('ResultsList', () => {
 
   it('should display result count and query', () => {
     const mockDownload = vi.fn();
-    render(<ResultsList results={mockResults} onDownload={mockDownload} searchQuery="harry potter" />);
+    const { container } = render(<ResultsList results={mockResults} onDownload={mockDownload} searchQuery="harry potter" />);
 
-    expect(screen.getByText('3')).toBeInTheDocument();
+    const resultCount = container.querySelector('.results-count');
+    expect(resultCount).toHaveTextContent('3');
     expect(screen.getByText('Results Found')).toBeInTheDocument();
     expect(screen.getByText('"harry potter"')).toBeInTheDocument();
   });
@@ -73,8 +74,8 @@ describe('ResultsList', () => {
     const mockDownload = vi.fn();
     render(<ResultsList results={mockResults} onDownload={mockDownload} searchQuery="test" />);
 
-    expect(screen.getByText('by JK Rowling')).toBeInTheDocument();
-    expect(screen.getByText('by Stephen King')).toBeInTheDocument();
+    expect(screen.getByText('JK Rowling')).toBeInTheDocument();
+    expect(screen.getByText('Stephen King')).toBeInTheDocument();
   });
 
   it('should not display author when not available', () => {
@@ -139,9 +140,10 @@ describe('ResultsList', () => {
 
   it('should render empty list when no results', () => {
     const mockDownload = vi.fn();
-    render(<ResultsList results={[]} onDownload={mockDownload} searchQuery="test" />);
+    const { container } = render(<ResultsList results={[]} onDownload={mockDownload} searchQuery="test" />);
 
-    expect(screen.getByText('0')).toBeInTheDocument();
+    const resultCount = container.querySelector('.results-count');
+    expect(resultCount).toHaveTextContent('0');
     expect(screen.getByText('Results Found')).toBeInTheDocument();
     
     const downloadButtons = screen.queryAllByRole('button', { name: /download/i });

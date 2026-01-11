@@ -5,7 +5,8 @@ import type {
   ApiResponse,
   ConfigData,
   ConfigUpdateResult,
-  NzbProvider
+  NzbProvider,
+  Downloader
 } from './types';
 
 const API_BASE = '/api';
@@ -98,6 +99,58 @@ export const api = {
   async testNzbProvider(id: string): Promise<ApiResponse<{ message: string; resultCount: number }>> {
     const response = await fetch(`${API_BASE}/nzb/providers/${id}/test`, {
       method: 'POST',
+    });
+    return response.json();
+  },
+
+  // Downloader Management
+  async getUsenetDownloaders(): Promise<ApiResponse<Downloader[]>> {
+    const response = await fetch(`${API_BASE}/downloaders/usenet`);
+    return response.json();
+  },
+
+  async getEnabledUsenetDownloader(): Promise<ApiResponse<Downloader | null>> {
+    const response = await fetch(`${API_BASE}/downloaders/usenet/enabled`);
+    return response.json();
+  },
+
+  async addUsenetDownloader(downloader: Omit<Downloader, 'id'>): Promise<ApiResponse<Downloader>> {
+    const response = await fetch(`${API_BASE}/downloaders/usenet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(downloader),
+    });
+    return response.json();
+  },
+
+  async updateUsenetDownloader(id: string, updates: Partial<Downloader>): Promise<ApiResponse<Downloader>> {
+    const response = await fetch(`${API_BASE}/downloaders/usenet/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    return response.json();
+  },
+
+  async deleteUsenetDownloader(id: string): Promise<ApiResponse<void>> {
+    const response = await fetch(`${API_BASE}/downloaders/usenet/${id}`, {
+      method: 'DELETE',
+    });
+    return response.json();
+  },
+
+  async testUsenetDownloader(id: string): Promise<ApiResponse<{ version?: string }>> {
+    const response = await fetch(`${API_BASE}/downloaders/usenet/${id}/test`, {
+      method: 'POST',
+    });
+    return response.json();
+  },
+
+  async sendToDownloader(nzbUrl: string, title: string): Promise<ApiResponse<{ message: string; downloaderType: string }>> {
+    const response = await fetch(`${API_BASE}/downloaders/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nzbUrl, title }),
     });
     return response.json();
   },
