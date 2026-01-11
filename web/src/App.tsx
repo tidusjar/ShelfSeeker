@@ -3,14 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SearchInterface from './components/SearchInterface';
 import ResultsList from './components/ResultsList';
 import DownloadPanel from './components/DownloadPanel';
-import StatusBar from './components/StatusBar';
 import SettingsModal from './components/SettingsModal';
 import { api } from './api';
-import type { SearchResult, ConnectionStatus, DownloadProgress, ConfigData } from './types';
+import type { SearchResult, DownloadProgress, ConfigData } from './types';
 import './App.css';
 
 function App() {
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [currentDownload, setCurrentDownload] = useState<DownloadProgress | null>(null);
@@ -19,25 +17,14 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    // Load configuration and auto-connect on mount
+    // Load configuration on mount
     loadConfig();
-    handleConnect();
   }, []);
 
   const loadConfig = async () => {
     const response = await api.getConfig();
     if (response.success && response.data) {
       setConfig(response.data);
-    }
-  };
-
-  const handleConnect = async () => {
-    setConnectionStatus('connecting');
-    const response = await api.connect();
-    if (response.success) {
-      setConnectionStatus('connected');
-    } else {
-      setConnectionStatus('disconnected');
     }
   };
 
@@ -111,12 +98,11 @@ function App() {
             <div className="logo-section">
               <div className="logo-icon">█</div>
               <div>
-                <h1 className="logo-title">IRC Archives</h1>
-                <p className="logo-subtitle">Digital Library Terminal</p>
+                <h1 className="logo-title">eBook Search</h1>
+                <p className="logo-subtitle">Multi-Source Digital Library</p>
               </div>
             </div>
             <div className="header-actions">
-              <StatusBar status={connectionStatus} />
               <motion.button
                 className="settings-button"
                 onClick={() => setShowSettings(true)}
@@ -141,7 +127,7 @@ function App() {
           <SearchInterface
             onSearch={handleSearch}
             isSearching={isSearching}
-            disabled={connectionStatus !== 'connected'}
+            disabled={false}
           />
         </motion.div>
 

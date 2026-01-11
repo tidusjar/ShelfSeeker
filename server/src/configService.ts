@@ -2,7 +2,7 @@ import { JSONFilePreset } from 'lowdb/node';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-import type { NzbProvider } from './types.js';
+import type { NzbProvider, Downloader } from './types.js';
 
 export interface IrcConfig {
   enabled: boolean;
@@ -30,18 +30,32 @@ export interface UiConfig {
   maxResults: number;
 }
 
+export interface GeneralConfig {
+  downloadPath: string;
+}
+
+export interface DownloaderConfig {
+  usenet: Downloader[];
+  torrent: Downloader[];
+}
+
 export interface AppConfig {
   version: string;
+  general: GeneralConfig;
   sources: {
     irc: IrcConfig;
     torrent: TorrentConfig;
     nzb: NzbConfig;
   };
+  downloaders: DownloaderConfig;
   ui: UiConfig;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
   version: '1.0',
+  general: {
+    downloadPath: process.env.DOWNLOAD_PATH || path.join(process.cwd(), 'downloads'),
+  },
   sources: {
     irc: {
       enabled: true,
@@ -61,6 +75,10 @@ const DEFAULT_CONFIG: AppConfig = {
       enabled: false,
       indexers: [],
     },
+  },
+  downloaders: {
+    usenet: [],
+    torrent: [],
   },
   ui: {
     theme: 'dark',
@@ -98,10 +116,17 @@ export class ConfigService {
       try {
         this.db = await JSONFilePreset(this.configPath, DEFAULT_CONFIG);
 
-        // Validate the loaded config structure
+        // Validate and migrate the loaded config structure
         const data = this.db.data;
         if (!data.version || !data.sources || !data.sources.irc) {
           throw new Error('Invalid config structure');
+        }
+
+        // Migrate old configs that don't have general section
+        if (!data.general) {
+          console.log('  Migrating config: Adding general section');
+          data.general = DEFAULT_CONFIG.general;
+          await this.db.write();
         }
       } catch (parseError) {
         // Config file is corrupted
@@ -135,6 +160,13 @@ export class ConfigService {
    */
   getIrcConfig(): IrcConfig {
     return JSON.parse(JSON.stringify(this.db.data.sources.irc));
+  }
+
+  /**
+   * Get only the general configuration (user-editable fields)
+   */
+  getGeneralConfig(): GeneralConfig {
+    return JSON.parse(JSON.stringify(this.db.data.general));
   }
 
   /**
@@ -185,6 +217,43 @@ export class ConfigService {
     try {
       // Update the configuration
       Object.assign(this.db.data.sources.irc, updates);
+      await this.db.write();
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('EACCES')) {
+        throw new Error('Failed to save configuration: Permission denied');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Validate general configuration values
+   */
+  validateGeneralConfig(config: Partial<GeneralConfig>): ValidationError[] {
+    const errors: ValidationError[] = [];
+
+    if (config.downloadPath !== undefined) {
+      if (typeof config.downloadPath !== 'string' || config.downloadPath.trim() === '') {
+        errors.push({ field: 'downloadPath', message: 'Download path cannot be empty' });
+      }
+    }
+
+    return errors;
+  }
+
+  /**
+   * Update general configuration (supports partial updates)
+   */
+  async updateGeneralConfig(updates: Partial<GeneralConfig>): Promise<void> {
+    // Validate updates
+    const errors = this.validateGeneralConfig(updates);
+    if (errors.length > 0) {
+      throw new Error(errors.map(e => e.message).join(', '));
+    }
+
+    try {
+      // Update the configuration
+      Object.assign(this.db.data.general, updates);
       await this.db.write();
     } catch (error) {
       if (error instanceof Error && error.message.includes('EACCES')) {

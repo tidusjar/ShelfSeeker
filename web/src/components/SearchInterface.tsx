@@ -59,7 +59,7 @@ function SearchInterface({ onSearch, isSearching, disabled }: SearchInterfacePro
             animate={{ opacity: 1, y: 0 }}
           >
             <span className="warning-icon">⚠</span>
-            Not connected to IRC server
+            No search sources available. Enable IRC or add NZB providers in settings.
           </motion.p>
         )}
       </form>

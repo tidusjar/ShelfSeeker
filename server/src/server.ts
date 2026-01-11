@@ -22,10 +22,10 @@ const configService = new ConfigService();
 await configService.initialize();
 
 // IRC Service (singleton) - initialized with configuration
-const ircService = new IrcService(configService.getIrcConfig());
+const ircService = new IrcService(configService.getIrcConfig(), configService.getGeneralConfig().downloadPath, configService);
 
 // NZB Service - handles Newznab API interactions
-const nzbService = new NzbService();
+const nzbService = new NzbService(configService);
 
 // Search Service - orchestrates unified IRC + NZB searches
 const searchService = new SearchService(ircService, nzbService, configService);
@@ -33,6 +33,15 @@ const searchService = new SearchService(ircService, nzbService, configService);
 // Routes
 app.post('/api/connect', async (req, res) => {
   try {
+    // Only connect if IRC is enabled
+    const ircConfig = configService.getIrcConfig();
+    if (!ircConfig.enabled) {
+      return res.json({ 
+        success: false, 
+        error: 'IRC is disabled. Please enable it in settings.' 
+      });
+    }
+
     await ircService.connect();
     res.json({ success: true, data: { status: 'connected' } });
   } catch (error) {
@@ -63,7 +72,7 @@ app.post('/api/search', async (req, res) => {
 
 app.post('/api/download', async (req, res) => {
   try {
-    const { source, command, nzbUrl, providerId } = req.body;
+    const { source, command, nzbUrl, providerId, title } = req.body;
 
     if (!source || (source !== 'irc' && source !== 'nzb')) {
       return res.json({ success: false, error: 'Invalid or missing source' });
@@ -91,7 +100,7 @@ app.post('/api/download', async (req, res) => {
         return res.json({ success: false, error: 'NZB provider not found' });
       }
 
-      filename = await nzbService.download(nzbUrl, provider.apiKey);
+      filename = await nzbService.download(nzbUrl, provider.apiKey, title);
     }
 
     res.json({ success: true, data: { filename } });
@@ -163,8 +172,12 @@ app.post('/api/nzb/providers/:id/test', async (req, res) => {
       return res.json({ success: false, error: 'Provider not found' });
     }
 
-    // Perform a test search (using a common term)
-    const results = await nzbService.search('test', [provider]);
+    console.log(`[Server] Testing NZB provider: ${provider.name} (enabled: ${provider.enabled})`);
+
+    // Perform a test search (using a common term likely to return results)
+    const results = await nzbService.search('ebook', [provider]);
+
+    console.log(`[Server] Test complete: ${results.length} results found`);
 
     res.json({
       success: true,
@@ -174,6 +187,7 @@ app.post('/api/nzb/providers/:id/test', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error(`[Server] Test failed:`, error);
     res.json({ success: false, error: (error as Error).message });
   }
 });
@@ -184,6 +198,7 @@ app.get('/api/config', (req, res) => {
     const ircConfig = configService.getIrcConfig();
     // Return only user-editable fields
     const userConfig = {
+      enabled: ircConfig.enabled,
       server: ircConfig.server,
       port: ircConfig.port,
       channel: ircConfig.channel,
@@ -197,33 +212,48 @@ app.get('/api/config', (req, res) => {
 
 app.put('/api/config', async (req, res) => {
   try {
-    const { irc } = req.body;
+    const { irc, general } = req.body;
+    const allErrors: string[] = [];
 
-    if (!irc || typeof irc !== 'object') {
-      return res.json({ success: false, error: 'Invalid configuration' });
+    // Validate and update general config if provided
+    if (general && typeof general === 'object') {
+      const generalErrors = configService.validateGeneralConfig(general);
+      if (generalErrors.length > 0) {
+        allErrors.push(...generalErrors.map(e => e.message));
+      } else {
+        await configService.updateGeneralConfig(general);
+      }
     }
 
-    // Validate the IRC config
-    const errors = configService.validateIrcConfig(irc);
-    if (errors.length > 0) {
+    // Validate and update IRC config if provided
+    if (irc && typeof irc === 'object') {
+      const ircErrors = configService.validateIrcConfig(irc);
+      if (ircErrors.length > 0) {
+        allErrors.push(...ircErrors.map(e => e.message));
+      } else {
+        await configService.updateIrcConfig(irc);
+      }
+    }
+
+    // Return validation errors if any
+    if (allErrors.length > 0) {
       return res.json({
         success: false,
-        error: errors.map(e => e.message).join(', ')
+        error: allErrors.join(', ')
       });
     }
 
-    // Save configuration
-    await configService.updateIrcConfig(irc);
-
-    // Update IRC service and reconnect
+    // Update IRC service and reconnect if IRC config was changed
     let reconnected = true;
     let reconnectError = null;
-    try {
-      await ircService.updateConfig(configService.getIrcConfig());
-    } catch (error) {
-      reconnected = false;
-      reconnectError = (error as Error).message;
-      console.error('Failed to reconnect with new config:', reconnectError);
+    if (irc) {
+      try {
+        await ircService.updateConfig(configService.getIrcConfig());
+      } catch (error) {
+        reconnected = false;
+        reconnectError = (error as Error).message;
+        console.error('Failed to reconnect with new config:', reconnectError);
+      }
     }
 
     res.json({

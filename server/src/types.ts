@@ -40,3 +40,21 @@ export interface NzbSearchResult {
   nzbUrl: string;                // For download
   guid: string;                  // Unique identifier
 }
+
+// Downloader Types
+export type DownloaderType = 'nzbget' | 'sabnzbd';
+
+export interface Downloader {
+  id: string;                    // UUID
+  name: string;                  // User-friendly name (e.g., "My NZBGet")
+  type: DownloaderType;          // nzbget or sabnzbd
+  enabled: boolean;              // Toggle without deletion
+  host: string;                  // e.g., "localhost" or "192.168.1.100"
+  port: number;                  // e.g., 6789 for NZBGet, 8080 for SABnzbd
+  ssl: boolean;                  // Use HTTPS
+  username: string;              // Auth username (required for both)
+  password: string;              // Auth password (required for both)
+  apiKey?: string;               // SABnzbd only - API key
+  category?: string;             // Default category in downloader (e.g., "books")
+  priority?: number;             // Default priority (-100 to 100 for NZBGet, -2 to 2 for SABnzbd)
+}

@@ -1,6 +1,7 @@
 export interface SearchResult {
   source: 'irc' | 'nzb';
   sourceProvider: string;
+  providerId?: string;         // NZB only - provider UUID for download routing
   botName: string;
   bookNumber: number;
   title: string;
@@ -29,14 +30,20 @@ export interface ApiResponse<T> {
 }
 
 export interface IrcConfig {
+  enabled: boolean;
   server: string;
   port: number;
   channel: string;
   searchCommand: string;
 }
 
+export interface GeneralConfig {
+  downloadPath: string;
+}
+
 export interface ConfigData {
   irc: IrcConfig;
+  general: GeneralConfig;
 }
 
 export interface ConfigValidation {

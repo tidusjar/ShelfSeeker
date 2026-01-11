@@ -13,7 +13,9 @@ describe('ResultsList', () => {
       fileType: 'epub',
       size: '2.5MB',
       command: '!Bsk JK Rowling - Harry Potter.epub',
-      filename: 'JK Rowling - Harry Potter.epub'
+      filename: 'JK Rowling - Harry Potter.epub',
+      source: 'irc',
+      sourceProvider: 'Bsk'
     },
     {
       botName: 'SearchBot',
@@ -23,7 +25,9 @@ describe('ResultsList', () => {
       fileType: 'pdf',
       size: '1.8MB',
       command: '!SearchBot Stephen King - The Shining.pdf',
-      filename: 'Stephen King - The Shining.pdf'
+      filename: 'Stephen King - The Shining.pdf',
+      source: 'irc',
+      sourceProvider: 'SearchBot'
     },
     {
       botName: 'Ebook',
@@ -33,7 +37,9 @@ describe('ResultsList', () => {
       fileType: 'mobi',
       size: '500KB',
       command: '!Ebook Unknown Book.mobi',
-      filename: 'Unknown Book.mobi'
+      filename: 'Unknown Book.mobi',
+      source: 'irc',
+      sourceProvider: 'Ebook'
     }
   ];
 

@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api';
 import type { ConfigData, IrcConfig } from '../types';
+import NzbProviderList from './NzbProviderList';
 import './SettingsModal.css';
 
 interface SettingsModalProps {
@@ -19,12 +20,16 @@ function SettingsModal({
   currentConfig,
   isDownloading
 }: SettingsModalProps) {
+  const [activeTab, setActiveTab] = useState<'general' | 'irc' | 'nzb'>('general');
   const [config, setConfig] = useState<IrcConfig>({
+    enabled: true,
     server: '',
     port: 6667,
     channel: '',
     searchCommand: ''
   });
+  const [generalConfig, setGeneralConfig] = useState({ downloadPath: '/app/server/downloads' });
+  const [ircStatus, setIrcStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -33,30 +38,46 @@ function SettingsModal({
   useEffect(() => {
     if (isOpen && currentConfig) {
       setConfig(currentConfig.irc);
+      setGeneralConfig(currentConfig.general || { downloadPath: '/app/server/downloads' });
       setErrors({});
       setSaveMessage(null);
+      // Check IRC status
+      checkIrcStatus();
     }
   }, [isOpen, currentConfig]);
+
+  const checkIrcStatus = async () => {
+    const response = await api.getStatus();
+    if (response.success && response.data) {
+      setIrcStatus(response.data.connectionStatus);
+    }
+  };
 
   const validateConfig = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!config.server.trim()) {
-      newErrors.server = 'Server address cannot be empty';
-    }
+    if (activeTab === 'general') {
+      if (!generalConfig.downloadPath.trim()) {
+        newErrors.downloadPath = 'Download path cannot be empty';
+      }
+    } else if (activeTab === 'irc') {
+      if (!config.server.trim()) {
+        newErrors.server = 'Server address cannot be empty';
+      }
 
-    if (config.port < 1 || config.port > 65535) {
-      newErrors.port = 'Port must be between 1 and 65535';
-    }
+      if (config.port < 1 || config.port > 65535) {
+        newErrors.port = 'Port must be between 1 and 65535';
+      }
 
-    if (!config.channel.trim()) {
-      newErrors.channel = 'Channel cannot be empty';
-    } else if (!config.channel.startsWith('#')) {
-      newErrors.channel = 'Channel must start with #';
-    }
+      if (!config.channel.trim()) {
+        newErrors.channel = 'Channel cannot be empty';
+      } else if (!config.channel.startsWith('#')) {
+        newErrors.channel = 'Channel must start with #';
+      }
 
-    if (!config.searchCommand.trim()) {
-      newErrors.searchCommand = 'Search command cannot be empty';
+      if (!config.searchCommand.trim()) {
+        newErrors.searchCommand = 'Search command cannot be empty';
+      }
     }
 
     setErrors(newErrors);
@@ -74,14 +95,26 @@ function SettingsModal({
     setSaveMessage(null);
 
     try {
-      const response = await api.updateConfig({ irc: config });
+      const updatePayload: any = {};
+      if (activeTab === 'general') {
+        updatePayload.general = generalConfig;
+      } else if (activeTab === 'irc') {
+        updatePayload.irc = config;
+      }
+
+      const response = await api.updateConfig(updatePayload);
 
       if (response.success && response.data) {
         setSaveMessage({
           type: 'success',
           text: response.data.message
         });
-        onSave({ irc: config });
+        
+        // Update parent state
+        onSave({
+          irc: activeTab === 'irc' ? config : currentConfig?.irc || config,
+          general: activeTab === 'general' ? generalConfig : currentConfig?.general || generalConfig
+        });
 
         // Close modal after a short delay
         setTimeout(() => {
@@ -119,6 +152,7 @@ function SettingsModal({
         const configResponse = await api.getConfig();
         if (configResponse.success && configResponse.data) {
           setConfig(configResponse.data.irc);
+          setGeneralConfig(configResponse.data.general);
           setSaveMessage({
             type: 'success',
             text: response.data.message
@@ -152,10 +186,10 @@ function SettingsModal({
     }
   };
 
-  const isValid = Object.keys(errors).length === 0 &&
-    config.server.trim() !== '' &&
-    config.channel.trim() !== '' &&
-    config.searchCommand.trim() !== '';
+  const isValid = Object.keys(errors).length === 0 && (
+    (activeTab === 'general' && generalConfig.downloadPath.trim() !== '') ||
+    (activeTab === 'irc' && config.server.trim() !== '' && config.channel.trim() !== '' && config.searchCommand.trim() !== '')
+  );
 
   return (
     <AnimatePresence>
@@ -177,7 +211,7 @@ function SettingsModal({
             <div className="settings-header">
               <h2 className="settings-title">
                 <span className="title-brackets">[</span>
-                IRC Configuration
+                Configuration
                 <span className="title-brackets">]</span>
               </h2>
               <button className="close-button" onClick={onClose} type="button">
@@ -185,7 +219,43 @@ function SettingsModal({
               </button>
             </div>
 
-            {isDownloading && (
+            <div className="settings-tabs">
+              <motion.button
+                type="button"
+                className={`tab-button ${activeTab === 'general' ? 'active' : ''}`}
+                onClick={() => setActiveTab('general')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="button-brackets">[</span>
+                General
+                <span className="button-brackets">]</span>
+              </motion.button>
+              <motion.button
+                type="button"
+                className={`tab-button ${activeTab === 'irc' ? 'active' : ''}`}
+                onClick={() => setActiveTab('irc')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="button-brackets">[</span>
+                IRC
+                <span className="button-brackets">]</span>
+              </motion.button>
+              <motion.button
+                type="button"
+                className={`tab-button ${activeTab === 'nzb' ? 'active' : ''}`}
+                onClick={() => setActiveTab('nzb')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="button-brackets">[</span>
+                NZB Providers
+                <span className="button-brackets">]</span>
+              </motion.button>
+            </div>
+
+            {isDownloading && (activeTab === 'irc' || activeTab === 'general') && (
               <motion.div
                 className="settings-warning"
                 initial={{ opacity: 0, y: -10 }}
@@ -196,7 +266,99 @@ function SettingsModal({
               </motion.div>
             )}
 
-            <form onSubmit={handleSubmit} className="settings-form">
+            {activeTab === 'general' ? (
+              <form onSubmit={handleSubmit} className="settings-form">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="downloadPath">
+                    <span className="label-prompt">&gt;</span>
+                    Download Path
+                  </label>
+                  <input
+                    type="text"
+                    id="downloadPath"
+                    className={`form-input ${errors.downloadPath ? 'error' : ''}`}
+                    value={generalConfig.downloadPath}
+                    onChange={(e) => setGeneralConfig({ ...generalConfig, downloadPath: e.target.value })}
+                    disabled={isSaving || isDownloading}
+                    placeholder="/app/server/downloads"
+                  />
+                  {errors.downloadPath && <span className="error-message">{errors.downloadPath}</span>}
+                  <p className="form-help">
+                    Path where downloaded files will be saved. For Docker users, ensure this matches your volume mount (e.g., /app/server/downloads).
+                  </p>
+                </div>
+
+                {saveMessage && (
+                  <motion.div
+                    className={`save-message ${saveMessage.type}`}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <span className="message-icon">
+                      {saveMessage.type === 'success' ? '✓' : '✗'}
+                    </span>
+                    {saveMessage.text}
+                  </motion.div>
+                )}
+
+                <div className="settings-actions">
+                  <div className="primary-actions">
+                    <motion.button
+                      type="button"
+                      className="action-button cancel-button"
+                      onClick={onClose}
+                      disabled={isSaving}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <span className="button-brackets">[</span>
+                      Cancel
+                      <span className="button-brackets">]</span>
+                    </motion.button>
+
+                    <motion.button
+                      type="submit"
+                      className="action-button save-button"
+                      disabled={!isValid || isSaving || isDownloading}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <span className="button-brackets">[</span>
+                      {isSaving ? 'Saving...' : 'Save'}
+                      <span className="button-brackets">]</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </form>
+            ) : activeTab === 'irc' ? (
+              <form onSubmit={handleSubmit} className="settings-form">
+              <div className="form-group irc-toggle-group">
+                <label className="form-label" htmlFor="ircEnabled">
+                  <span className="label-prompt">&gt;</span>
+                  Enable IRC Search
+                </label>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="ircEnabled"
+                    checked={config.enabled}
+                    onChange={(e) => setConfig({ ...config, enabled: e.target.checked })}
+                    disabled={isSaving || isDownloading}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+
+              {/* IRC Connection Status */}
+              <div className="irc-status-display">
+                <span className="status-label">Connection Status:</span>
+                <span className={`status-value status-${ircStatus}`}>
+                  {ircStatus === 'connected' ? '● Connected' : 
+                   ircStatus === 'connecting' ? '○ Connecting...' : 
+                   '○ Disconnected'}
+                </span>
+              </div>
+
               <div className="form-group">
                 <label className="form-label" htmlFor="server">
                   <span className="label-prompt">&gt;</span>
@@ -322,6 +484,11 @@ function SettingsModal({
                 </div>
               </div>
             </form>
+            ) : (
+              <div className="nzb-tab-content">
+                <NzbProviderList />
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

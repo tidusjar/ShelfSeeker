@@ -30,16 +30,18 @@ export class IrcService {
   private config: IrcConfig;
   private downloadDir: string;
   private tempDir: string;
+  private configService?: any;
   private pendingTransfer: {
     type: 'search' | 'download';
     resolve: (result: DccDownloadResult | null) => void;
     timeout?: NodeJS.Timeout;
   } | null = null;
 
-  constructor(config: IrcConfig) {
+  constructor(config: IrcConfig, downloadDir?: string, configService?: any) {
     this.config = config;
+    this.configService = configService;
     // Allow download and temp paths to be configured via environment variables
-    this.downloadDir = process.env.DOWNLOAD_PATH || './downloads';
+    this.downloadDir = downloadDir || process.env.DOWNLOAD_PATH || './downloads';
     this.tempDir = process.env.TEMP_PATH || './.tmp';
     this.dccHandler = new DccHandler(this.downloadDir, this.tempDir);
     this.ircClient = new IrcClient(
@@ -51,6 +53,15 @@ export class IrcService {
       this.dccHandler
     );
     this.setupEventHandlers();
+    
+    // Auto-connect only if enabled
+    if (config.enabled) {
+      this.connect().catch((error) => {
+        console.error('✗ Failed to auto-connect to IRC:', error.message);
+      });
+    } else {
+      console.log('ℹ IRC is disabled, skipping auto-connect');
+    }
   }
 
   private setupEventHandlers(): void {
@@ -189,6 +200,16 @@ export class IrcService {
 
     console.log(`→ Download: ${command}`);
 
+    // Get current download path from config if available
+    let downloadPath = this.downloadDir;
+    if (this.configService && typeof this.configService.getGeneralConfig === 'function') {
+      const generalConfig = this.configService.getGeneralConfig();
+      downloadPath = generalConfig.downloadPath || this.downloadDir;
+    }
+
+    // Create new DCC handler with current download path
+    const dccHandler = new DccHandler(downloadPath, this.tempDir);
+
     // Send download command
     this.ircClient.download(command);
 
@@ -231,8 +252,12 @@ export class IrcService {
     // Re-setup event handlers for the new client
     this.setupEventHandlers();
 
-    // Reconnect with new settings
-    await this.connect();
+    // Only reconnect if enabled
+    if (newConfig.enabled) {
+      await this.connect();
+    } else {
+      console.log('ℹ IRC is disabled, not reconnecting');
+    }
   }
 
   getConfig(): IrcConfig {

@@ -5,8 +5,10 @@ import { NzbProvider, NzbSearchResult, NzbApiResponse, NzbSearchItem } from './t
 
 export class NzbService {
   private xmlParser: XMLParser;
+  private configService?: any;
 
-  constructor() {
+  constructor(configService?: any) {
+    this.configService = configService;
     // Configure parser to handle arrays and Newznab attributes
     this.xmlParser = new XMLParser({
       ignoreAttributes: false,
@@ -51,6 +53,8 @@ export class NzbService {
     searchUrl.searchParams.set('extended', '1');
     searchUrl.searchParams.set('limit', '100');
 
+    console.log(`[NzbService] Testing provider ${provider.name}: ${searchUrl.toString().replace(provider.apiKey, '***')}`);
+
     // Create abort controller for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -65,6 +69,8 @@ export class NzbService {
 
       clearTimeout(timeoutId);
 
+      console.log(`[NzbService] Provider ${provider.name} responded with status: ${response.status}`);
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -72,10 +78,16 @@ export class NzbService {
       const xmlText = await response.text();
       const apiResponse = this.parseXml(xmlText);
 
+      console.log(`[NzbService] Provider ${provider.name} returned ${apiResponse.items.length} items`);
+
       // Convert items to search results
-      return apiResponse.items
+      const results = apiResponse.items
         .map(item => this.convertToSearchResult(item, provider.name, provider.id))
         .filter((result): result is NzbSearchResult => result !== null);
+
+      console.log(`[NzbService] Provider ${provider.name} converted ${results.length} valid search results`);
+
+      return results;
 
     } catch (error: any) {
       clearTimeout(timeoutId);
@@ -190,20 +202,54 @@ export class NzbService {
    * - "Author - Title [Format]"
    * - "Title (Year) [Format]"
    * - "Title [Format]"
+   * - "[Series 01] - Title (retail) (azw3)"
+   * - "[Series 01] - Title (epub)"
    */
   private extractMetadata(title: string): { title: string; author: string; fileType: string } {
+    // Valid ebook file types
+    const validTypes = [
+      'epub', 'pdf', 'mobi', 'azw', 'azw3', 'azw4', 'kfx', 'prc', 'tpz', 'azw1',  // Kindle formats
+      'txt', 'rtf', 'doc', 'docx', 'html', 'htm',  // Document formats
+      'fb2', 'lit', 'pdb', 'ibooks', 'djvu',  // Other ebook formats
+      'cbr', 'cbz', 'cbt', 'cb7',  // Comic book formats
+      'chm', 'lrf', 'odt', 'opf'  // Additional formats
+    ];
+    
     let author = 'Unknown';
     let bookTitle = title;
     let fileType = 'Unknown';
 
     // Extract file type from brackets [EPUB], [PDF], etc.
-    const typeMatch = title.match(/\[([A-Z0-9]+)\]/i);
-    if (typeMatch) {
-      fileType = typeMatch[1].toUpperCase();
-      bookTitle = title.replace(/\[.*?\]/g, '').trim();
+    const bracketTypeMatch = title.match(/\[([A-Z0-9]+)\]/i);
+    if (bracketTypeMatch) {
+      const potentialType = bracketTypeMatch[1].toLowerCase();
+      if (validTypes.includes(potentialType)) {
+        fileType = potentialType;
+        bookTitle = title.replace(/\[.*?\]/g, '').trim();
+      }
     }
 
-    // Remove year in parentheses
+    // Extract file type from parentheses (epub), (azw3), etc.
+    // Look for parentheses containing valid file types (ignoring things like years or "retail")
+    if (fileType === 'Unknown') {
+      const parenMatches = title.matchAll(/\(([^)]+)\)/g);
+      for (const match of parenMatches) {
+        const content = match[1].toLowerCase().trim();
+        if (validTypes.includes(content)) {
+          fileType = content;
+          // Remove all parentheses from title
+          bookTitle = title.replace(/\([^)]+\)/g, '').trim();
+          break;
+        }
+      }
+    }
+
+    // If still no type found, remove all brackets/parentheses for cleaner title
+    if (fileType === 'Unknown') {
+      bookTitle = title.replace(/[\[\(].*?[\]\)]/g, '').trim();
+    }
+
+    // Remove year in parentheses if still present
     bookTitle = bookTitle.replace(/\(\d{4}\)/g, '').trim();
 
     // Try to extract author from "Author - Title" pattern
@@ -234,7 +280,7 @@ export class NzbService {
   }
 
   /**
-   * Download NZB file and save to downloads/ folder
+   * Download NZB file and save to configured downloads folder
    */
   async download(nzbUrl: string, apiKey: string, filename?: string): Promise<string> {
     try {
@@ -251,7 +297,7 @@ export class NzbService {
 
       const nzbContent = await response.text();
 
-      // Generate filename if not provided
+      // Use provided filename (title) or fallback to URL-based name
       if (!filename) {
         const urlParts = nzbUrl.split('/');
         filename = urlParts[urlParts.length - 1];
@@ -262,11 +308,11 @@ export class NzbService {
         filename += '.nzb';
       }
 
-      // Sanitize filename
-      filename = filename.replace(/[^a-z0-9._-]/gi, '_');
+      // Sanitize filename (preserve spaces, remove only truly problematic chars)
+      filename = filename.replace(/[<>:"|?*\/\\]/g, '_');
 
-      // Ensure downloads directory exists
-      const downloadsDir = join(process.cwd(), 'downloads');
+      // Get configured download path or fallback to default
+      const downloadsDir = this.configService?.getGeneralConfig().downloadPath || join(process.cwd(), 'downloads');
       await mkdir(downloadsDir, { recursive: true });
 
       // Handle filename collisions

@@ -21,11 +21,11 @@ function StatusBar({ status }: StatusBarProps) {
   const getStatusText = () => {
     switch (status) {
       case 'connected':
-        return 'Connected';
+        return 'IRC Connected';
       case 'connecting':
-        return 'Connecting';
+        return 'IRC Connecting';
       case 'disconnected':
-        return 'Disconnected';
+        return 'IRC Disconnected';
     }
   };
 

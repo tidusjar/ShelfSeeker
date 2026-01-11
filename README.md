@@ -1,6 +1,6 @@
-# IRC Ebook Search
+# eBook Search (Multi-Source)
 
-A multi-platform IRC ebook search application that connects to IRCHighway (#ebooks channel) for searching and downloading ebooks.
+A multi-platform ebook search application that searches across multiple sources including IRC (IRCHighway #ebooks) and NZB/Newznab indexers.
 
 ## 🚀 Quick Start with Docker
 
@@ -23,30 +23,32 @@ See [docs/DOCKER.md](docs/DOCKER.md) for detailed Docker documentation.
 
 ## 📦 Components
 
-This project includes three ways to use the IRC ebook search:
+This project includes three ways to use the ebook search:
 
 1. **Web Application** (Recommended for most users)
    - Modern React UI with animations
    - Accessible via browser at `http://localhost:3001`
-   - Includes configuration management
+   - Configure multiple search sources (IRC + NZB)
+   - Unified search results from all enabled sources
 
 2. **API Server** (For developers)
-   - RESTful API for IRC operations
+   - RESTful API for multi-source search operations
    - Serves the web frontend in production
    - See server/README.md for API documentation
 
 3. **CLI Tool** (For power users)
    - Interactive command-line interface
-   - Direct terminal-based searches and downloads
+   - Direct terminal-based IRC searches and downloads
 
 ## Features
 
-- 🔍 Search for ebooks using natural language queries
-- 📥 Download ebooks directly via DCC file transfers
-- 🔄 Auto-reconnect on connection loss
+- 🔍 **Multi-Source Search**: Search IRC and NZB indexers simultaneously
+- 📥 **Multiple Download Methods**: IRC DCC transfers and NZB downloads
+- 🔄 Auto-reconnect on IRC connection loss
 - ⏱️ Smart timeout handling with retry options
 - 📦 Automatic extraction of search results from zip files
 - 💾 Organized downloads in `./downloads/` directory
+- ⚙️ **Configurable Sources**: Enable/disable IRC, add multiple NZB providers
 
 ## 🐳 Docker Deployment (Recommended)
 
@@ -273,6 +275,41 @@ ircbooks/
 ```
 
 ## Configuration
+
+### Download Path Settings
+
+You can configure where downloaded ebooks are saved through the **Settings** menu in the web interface:
+
+1. Click the **Settings** button (⚙️) in the top right
+2. Go to the **General** tab  
+3. Set your desired **Download Path**
+4. Click **Save**
+
+#### For Docker Users
+
+When running as a Docker container, ensure your download path matches your volume mount. 
+
+**Example `docker-compose.yml`:**
+```yaml
+volumes:
+  - ./downloads:/app/server/downloads  # Host:Container mapping
+```
+
+Then set the download path in Settings → General to `/app/server/downloads` (the container path).
+
+**Default Docker paths:**
+- Downloads: `/app/server/downloads`
+- Configuration: `/app/server/data`
+
+You can also override these via environment variables:
+
+```yaml
+environment:
+  - DOWNLOAD_PATH=/app/server/downloads
+  - CONFIG_PATH=/app/server/data/config.json
+```
+
+### IRC Configuration
 
 ### Web/Server Configuration
 The web interface includes a settings panel to configure:

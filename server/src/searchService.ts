@@ -20,8 +20,9 @@ export class SearchService {
   async search(query: string): Promise<UnifiedSearchResult[]> {
     const results: UnifiedSearchResult[] = [];
 
-    // Check IRC connection status
-    const ircEnabled = this.ircService.getStatus() === 'connected';
+    // Check IRC enabled status and connection
+    const ircConfig = this.configService.getIrcConfig();
+    const ircEnabled = ircConfig.enabled && this.ircService.getStatus() === 'connected';
 
     // Get enabled NZB providers
     const nzbProviders = this.configService.getNzbProviders();
@@ -29,7 +30,7 @@ export class SearchService {
     const nzbEnabled = enabledNzbProviders.length > 0;
 
     if (!ircEnabled && !nzbEnabled) {
-      throw new Error('No search sources available. Please connect to IRC or add NZB providers.');
+      throw new Error('No search sources available. Please enable IRC or add NZB providers.');
     }
 
     console.log(`[SearchService] Searching: IRC=${ircEnabled}, NZB=${nzbEnabled} (${enabledNzbProviders.length} providers)`);

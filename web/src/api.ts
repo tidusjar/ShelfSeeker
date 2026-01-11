@@ -28,7 +28,7 @@ export const api = {
   async download(result: SearchResult): Promise<ApiResponse<{ filename: string }>> {
     const payload = result.source === 'irc'
       ? { source: 'irc', command: result.command }
-      : { source: 'nzb', nzbUrl: result.nzbUrl, providerId: result.sourceProvider };
+      : { source: 'nzb', nzbUrl: result.nzbUrl, providerId: result.providerId, title: result.title };
 
     const response = await fetch(`${API_BASE}/download`, {
       method: 'POST',

@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { SearchResult } from '../types';
 import './ResultsList.css';
@@ -8,11 +9,31 @@ interface ResultsListProps {
   searchQuery: string;
 }
 
+type SourceFilter = 'all' | 'irc' | 'nzb';
+
 function ResultsList({ results, onDownload, searchQuery }: ResultsListProps) {
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+
   const formatFileSize = (size: string) => {
     // Size is already formatted from the backend
     return size;
   };
+
+  // Calculate source counts
+  const sourceCounts = useMemo(() => {
+    const counts = {
+      all: results.length,
+      irc: results.filter(r => r.source === 'irc').length,
+      nzb: results.filter(r => r.source === 'nzb').length
+    };
+    return counts;
+  }, [results]);
+
+  // Filter results based on selected source
+  const filteredResults = useMemo(() => {
+    if (sourceFilter === 'all') return results;
+    return results.filter(r => r.source === sourceFilter);
+  }, [results, sourceFilter]);
 
   const container = {
     hidden: { opacity: 0 },
@@ -34,7 +55,7 @@ function ResultsList({ results, onDownload, searchQuery }: ResultsListProps) {
       <div className="results-header">
         <div className="results-header-content">
           <h2 className="results-title">
-            <span className="results-count">{results.length}</span>
+            <span className="results-count">{filteredResults.length}</span>
             <span className="results-label">Results Found</span>
           </h2>
           <p className="results-query">
@@ -45,13 +66,46 @@ function ResultsList({ results, onDownload, searchQuery }: ResultsListProps) {
         <div className="results-border" />
       </div>
 
+      {/* Source Filter Buttons */}
+      <div className="source-filter">
+        <motion.button
+          type="button"
+          className={`filter-button ${sourceFilter === 'all' ? 'active' : ''}`}
+          onClick={() => setSourceFilter('all')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          All ({sourceCounts.all})
+        </motion.button>
+        <motion.button
+          type="button"
+          className={`filter-button ${sourceFilter === 'irc' ? 'active' : ''}`}
+          onClick={() => setSourceFilter('irc')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          disabled={sourceCounts.irc === 0}
+        >
+          📡 IRC ({sourceCounts.irc})
+        </motion.button>
+        <motion.button
+          type="button"
+          className={`filter-button ${sourceFilter === 'nzb' ? 'active' : ''}`}
+          onClick={() => setSourceFilter('nzb')}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          disabled={sourceCounts.nzb === 0}
+        >
+          🌐 NZB ({sourceCounts.nzb})
+        </motion.button>
+      </div>
+
       <motion.div
         className="results-grid"
         variants={container}
         initial="hidden"
         animate="show"
       >
-        {results.map((result, index) => (
+        {filteredResults.map((result, index) => (
           <motion.div
             key={`${result.botName}-${result.bookNumber}`}
             className="result-card"
@@ -59,9 +113,14 @@ function ResultsList({ results, onDownload, searchQuery }: ResultsListProps) {
             whileHover={{ scale: 1.01, y: -2 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
           >
-            <div className="result-number">
-              <span className="number-hash">#</span>
-              <span className="number-value">{(index + 1).toString().padStart(3, '0')}</span>
+            <div className="result-header-row">
+              <div className="result-number">
+                <span className="number-hash">#</span>
+                <span className="number-value">{(index + 1).toString().padStart(3, '0')}</span>
+              </div>
+              <div className={`source-badge source-${result.source}`}>
+                {result.source === 'irc' ? '📡 IRC' : '🌐 NZB'}
+              </div>
             </div>
 
             <div className="result-content">
@@ -80,8 +139,8 @@ function ResultsList({ results, onDownload, searchQuery }: ResultsListProps) {
                   <span className="meta-value">{formatFileSize(result.size)}</span>
                 </div>
                 <div className="meta-item">
-                  <span className="meta-label">Bot:</span>
-                  <span className="meta-value">{result.botName}</span>
+                  <span className="meta-label">Source:</span>
+                  <span className="meta-value">{result.sourceProvider}</span>
                 </div>
               </div>
             </div>
