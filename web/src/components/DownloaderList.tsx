@@ -120,7 +120,6 @@ function DownloaderList() {
       {/* Header */}
       <div className="downloader-list-header">
         <div>
-          <h3>Usenet Downloaders</h3>
           <p className="downloader-list-subtitle">
             Configure NZBGet or SABnzbd to send NZB files directly
           </p>

@@ -1,6 +1,6 @@
 # Settings Configuration Guide
 
-This guide explains how to configure IRCBooks, especially when running in Docker.
+This guide explains how to configure ShelfSeeker, especially when running in Docker.
 
 ## General Settings
 
@@ -17,7 +17,7 @@ The download path determines where your ebooks are saved after downloading.
 
 ### Docker Configuration
 
-When running IRCBooks as a Docker container, the download path **must** match your volume mount.
+When running ShelfSeeker as a Docker container, the download path **must** match your volume mount.
 
 #### Default Configuration
 
@@ -149,7 +149,7 @@ The **NZB Providers** tab allows you to configure Newznab-compatible indexers fo
 # docker-compose.yml
 volumes:
   - /mnt/media/ebooks:/app/server/downloads
-  - /opt/ircbooks/config:/app/server/data
+  - /opt/ShelfSeeker/config:/app/server/data
 ```
 
 Settings UI: Download Path = `/app/server/downloads`
@@ -160,7 +160,7 @@ Settings UI: Download Path = `/app/server/downloads`
 # docker-compose.yml
 volumes:
   - /volume1/public/ebooks:/app/server/downloads
-  - /volume1/docker/ircbooks:/app/server/data
+  - /volume1/docker/ShelfSeeker:/app/server/data
 ```
 
 Settings UI: Download Path = `/app/server/downloads`

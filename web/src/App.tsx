@@ -144,7 +144,7 @@ function App() {
             <div className="logo-section">
               <div className="logo-icon">█</div>
               <div>
-                <h1 className="logo-title">eBook Search</h1>
+                <h1 className="logo-title">ShelfSeeker</h1>
                 <p className="logo-subtitle">Multi-Source Digital Library</p>
               </div>
             </div>

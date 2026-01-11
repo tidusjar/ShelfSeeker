@@ -1,6 +1,6 @@
 # Docker Deployment
 
-This guide explains how to run IRCBooks using Docker.
+This guide explains how to run ShelfSeeker using Docker.
 
 ## Quick Start
 
@@ -23,7 +23,7 @@ The application will be available at: **http://localhost:3001**
 
 ### Environment Variables
 
-IRCBooks can be configured using environment variables. Create a `.env` file in the project root:
+ShelfSeeker can be configured using environment variables. Create a `.env` file in the project root:
 
 ```bash
 # Copy the example file
@@ -52,7 +52,7 @@ nano .env
 ```env
 # Use custom paths
 DOWNLOAD_PATH=/mnt/nas/ebooks
-DATA_PATH=/mnt/nas/ircbooks-data
+DATA_PATH=/mnt/nas/shelfseeker-data
 
 # Connect to a different IRC server
 IRC_SERVER=irc.example.com
@@ -64,24 +64,24 @@ IRC_CHANNEL=#bookshare
 
 ```bash
 # Build the image
-docker build -t ircbooks .
+docker build -t shelfseeker .
 
 # Run with custom paths
 docker run -d \
-  --name ircbooks \
+  --name shelfseeker \
   -p 3001:3001 \
   -v /mnt/nas/ebooks:/app/server/downloads \
-  -v /mnt/nas/ircbooks-data:/app/server/data \
+  -v /mnt/nas/shelfseeker-data:/app/server/data \
   -e IRC_SERVER=irc.irchighway.net \
   -e IRC_CHANNEL=#ebooks \
-  ircbooks
+  shelfseeker
 
 # View logs
-docker logs -f ircbooks
+docker logs -f shelfseeker
 
 # Stop the container
-docker stop ircbooks
-docker rm ircbooks
+docker stop shelfseeker
+docker rm shelfseeker
 ```
 
 ## What's Included
@@ -137,14 +137,14 @@ The container includes a healthcheck that pings `/api/status` every 30 seconds.
 ```bash
 docker-compose logs -f
 # or
-docker logs -f ircbooks
+docker logs -f shelfseeker
 ```
 
 ### Access container shell
 ```bash
-docker-compose exec ircbooks sh
+docker-compose exec shelfseeker sh
 # or
-docker exec -it ircbooks sh
+docker exec -it shelfseeker sh
 ```
 
 ### Rebuild after code changes

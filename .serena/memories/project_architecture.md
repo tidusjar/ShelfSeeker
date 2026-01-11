@@ -1,4 +1,4 @@
-# IRCBooks Project Architecture
+# ShelfSeeker Project Architecture
 
 ## Purpose
 CLI tool for searching and downloading ebooks from IRCHighway #ebooks channel using IRC and DCC file transfers.

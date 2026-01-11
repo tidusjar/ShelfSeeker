@@ -128,6 +128,13 @@ export class ConfigService {
           data.general = DEFAULT_CONFIG.general;
           await this.db.write();
         }
+
+        // Migrate old configs that don't have downloaders section
+        if (!data.downloaders) {
+          console.log('  Migrating config: Adding downloaders section');
+          data.downloaders = DEFAULT_CONFIG.downloaders;
+          await this.db.write();
+        }
       } catch (parseError) {
         // Config file is corrupted
         console.warn('⚠ Config file corrupted, backing up and resetting to defaults');

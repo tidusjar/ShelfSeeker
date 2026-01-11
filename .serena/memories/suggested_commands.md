@@ -1,4 +1,4 @@
-# Suggested Commands for ircbooks
+# Suggested Commands for shelfseeker
 
 ## Development
 ```bash

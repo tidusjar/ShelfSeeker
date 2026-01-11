@@ -12,7 +12,8 @@ export class CliInterface {
    */
   showWelcome(): void {
     console.log('╔════════════════════════════════════════╗');
-    console.log('║   IRC Ebook Search & Download Tool    ║');
+    console.log('║          ShelfSeeker v1.0.0           ║');
+    console.log('║   Multi-Source eBook Search & DL      ║');
     console.log('╚════════════════════════════════════════╝');
     console.log();
   }

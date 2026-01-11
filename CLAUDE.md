@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a multi-component IRC ebook search application consisting of:
+ShelfSeeker is a multi-component ebook search application consisting of:
 - **CLI Tool** (`src/`) - Interactive command-line interface for searching and downloading ebooks
 - **Web Frontend** (`web/`) - React + Vite frontend with Framer Motion animations
 - **API Server** (`server/`) - Express.js backend that wraps IRC functionality for web access
@@ -115,7 +115,7 @@ All three components currently use hardcoded IRC settings:
 - **Server**: `irc.irchighway.net`
 - **Port**: `6667`
 - **Channel**: `#ebooks`
-- **Nickname Format**: `ircbooks_<random4digits>`
+- **Nickname Format**: `shelfseeker_<random4digits>`
 
 ## Dependencies
 

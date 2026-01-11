@@ -22,10 +22,9 @@ export class DownloaderService {
       const nzbContent = await nzbResponse.text();
       const nzbBase64 = Buffer.from(nzbContent).toString('base64');
 
-      // Build NZBGet URL
+      // Build NZBGet URL (without credentials in URL)
       const protocol = downloader.ssl ? 'https' : 'http';
-      const auth = `${downloader.username}:${downloader.password}`;
-      const url = `${protocol}://${auth}@${downloader.host}:${downloader.port}/jsonrpc`;
+      const url = `${protocol}://${downloader.host}:${downloader.port}/jsonrpc`;
 
       // NZBGet JSON-RPC request
       const requestBody = {
@@ -43,10 +42,14 @@ export class DownloaderService {
         ],
       };
 
+      // Use Basic Auth header instead of credentials in URL
+      const auth = Buffer.from(`${downloader.username}:${downloader.password}`).toString('base64');
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Basic ${auth}`,
         },
         body: JSON.stringify(requestBody),
         signal: AbortSignal.timeout(10000),
@@ -171,18 +174,20 @@ export class DownloaderService {
    */
   private async testNZBGetConnection(downloader: Downloader): Promise<{ success: boolean; message: string; version?: string }> {
     const protocol = downloader.ssl ? 'https' : 'http';
-    const auth = `${downloader.username}:${downloader.password}`;
-    const url = `${protocol}://${auth}@${downloader.host}:${downloader.port}/jsonrpc`;
+    const url = `${protocol}://${downloader.host}:${downloader.port}/jsonrpc`;
 
     const requestBody = {
       method: 'version',
       params: [],
     };
 
+    const auth = Buffer.from(`${downloader.username}:${downloader.password}`).toString('base64');
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Basic ${auth}`,
       },
       body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(5000),

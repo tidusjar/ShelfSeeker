@@ -1,9 +1,9 @@
 services:
-  ircbooks:
+  shelfseeker:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ircbooks
+    container_name: shelfseeker
     ports:
       - "3001:3001"
     volumes:

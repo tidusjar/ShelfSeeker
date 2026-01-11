@@ -9,7 +9,7 @@ describe('SearchResultParser', () => {
   let tempFile: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), 'ircbooks-test-'));
+    tempDir = mkdtempSync(join(tmpdir(), 'shelfseeker-test-'));
     tempFile = join(tempDir, 'search-results.txt');
   });
 

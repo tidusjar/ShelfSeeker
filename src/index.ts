@@ -19,7 +19,7 @@ const DOWNLOAD_TIMEOUT = 300000; // 5 minutes - IRC transfers can be slow for la
 /**
  * Main Application
  */
-class IrcBooksApp {
+class ShelfSeekerApp {
   private cli: CliInterface;
   private dccHandler: DccHandler;
   private ircClient: IrcClient;
@@ -278,5 +278,5 @@ class IrcBooksApp {
 }
 
 // Start the application
-const app = new IrcBooksApp();
+const app = new ShelfSeekerApp();
 app.start();

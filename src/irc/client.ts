@@ -51,7 +51,7 @@ export class IrcClient extends EventEmitter {
    */
   private generateNickname(): string {
     const random = Math.floor(1000 + Math.random() * 9000);
-    return `ircbooks_${random}`;
+    return `shelfseeker_${random}`;
   }
 
   /**
@@ -255,8 +255,8 @@ export class IrcClient extends EventEmitter {
         host: this.config.server,
         port: this.config.port,
         nick: this.config.nick!,
-        username: 'ircbooks',
-        gecos: 'IRC Ebook Search Client'
+        username: 'shelfseeker',
+        gecos: 'ShelfSeeker IRC Client'
       });
     });
   }

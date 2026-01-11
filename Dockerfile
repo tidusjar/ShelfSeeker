@@ -1,4 +1,4 @@
-# Multi-stage build for IRCBooks application
+# Multi-stage build for ShelfSeeker application
 FROM node:20-alpine AS base
 
 # Stage 1: Build web frontend

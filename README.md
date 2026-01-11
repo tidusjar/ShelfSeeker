@@ -1,6 +1,6 @@
-# eBook Search (Multi-Source)
+# ShelfSeeker
 
-A multi-platform ebook search application that searches across multiple sources including IRC (IRCHighway #ebooks) and NZB/Newznab indexers.
+A multi-source ebook search application that searches across multiple sources including IRC (IRCHighway #ebooks) and NZB/Newznab indexers.
 
 ## 🚀 Quick Start with Docker
 
@@ -9,7 +9,7 @@ The fastest way to get started is using Docker:
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd ircbooks
+cd shelfseeker
 
 # Start the application
 ./docker-setup.sh
@@ -190,7 +190,7 @@ See full API documentation in `server/README.md`
 ## Project Structure
 
 ```
-ircbooks/
+ShelfSeeker/
 ├── src/                     # CLI application
 │   ├── index.ts            # Main CLI entry point
 │   ├── irc/                # IRC client & DCC handler (shared with server)
@@ -224,12 +224,13 @@ ircbooks/
 
 ```
 ╔════════════════════════════════════════╗
-║   IRC Ebook Search & Download Tool    ║
+║          ShelfSeeker v1.0.0           ║
+║   Multi-Source eBook Search & DL      ║
 ╚════════════════════════════════════════╝
 
 Connecting to irc.irchighway.net...
 Joining #ebooks...
-✓ Connected to #ebooks as ircbooks_1234
+✓ Connected to #ebooks as shelfseeker_1234
 
 Enter search term (or "exit" to quit): diary of a wimpy kid
 
@@ -256,22 +257,26 @@ Receiving file: Diary of a Wimpy Kid - Old School - Jeff Kinney.epub...
 ## Project Structure
 
 ```
-ircbooks/
-├── src/
-│   ├── index.ts                 # Main entry point
-│   ├── types.ts                 # TypeScript type definitions
-│   ├── irc/
-│   │   ├── client.ts           # IRC connection manager
-│   │   └── dccHandler.ts       # DCC file transfer handler
-│   ├── parser/
-│   │   └── searchResultParser.ts  # Parse search results
-│   └── cli/
-│       └── interface.ts         # Interactive CLI prompts
-├── downloads/                   # Downloaded ebooks
-├── .tmp/                       # Temporary search result files
+shelfseeker/
+├── src/                     # CLI application
+│   ├── index.ts            # Main CLI entry point
+│   ├── irc/                # IRC client & DCC handler (shared with server)
+│   ├── parser/             # Search result parser
+│   └── cli/                # Interactive prompts
+├── server/                  # API server
+│   └── src/
+│       ├── server.ts       # Express app
+│       ├── ircService.ts   # IRC singleton service
+│       └── configService.ts # Configuration management
+├── web/                     # React frontend
+│   └── src/
+│       ├── components/     # UI components
+│       └── api.ts          # API client
+├── Dockerfile              # Docker image definition
+├── docker-compose.yml      # Docker Compose configuration
 └── docs/
-    └── plans/
-        └── 2026-01-04-irc-ebook-search-design.md  # Design document
+    ├── DOCKER.md           # Docker documentation
+    └── plans/              # Design documents
 ```
 
 ## Configuration

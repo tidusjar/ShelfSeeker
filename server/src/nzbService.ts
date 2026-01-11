@@ -63,7 +63,7 @@ export class NzbService {
       const response = await fetch(searchUrl.toString(), {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'ircbooks/1.0'
+          'User-Agent': 'shelfseeker/1.0'
         }
       });
 
@@ -287,7 +287,7 @@ export class NzbService {
       // Fetch NZB file
       const response = await fetch(nzbUrl, {
         headers: {
-          'User-Agent': 'ircbooks/1.0'
+          'User-Agent': 'shelfseeker/1.0'
         }
       });
 

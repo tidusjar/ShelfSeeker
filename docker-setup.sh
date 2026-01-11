@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🐳 IRCBooks Docker Setup"
+echo "🐳 ShelfSeeker Docker Setup"
 echo "======================="
 echo ""
 
@@ -61,7 +61,7 @@ echo "🚀 Starting container..."
 $COMPOSE_CMD up -d
 
 echo ""
-echo "✅ IRCBooks is running!"
+echo "✅ ShelfSeeker is running!"
 echo ""
 echo "📍 Access the application at: http://localhost:3001"
 echo ""

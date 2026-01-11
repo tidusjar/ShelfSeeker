@@ -30,7 +30,7 @@ A Node.js/TypeScript CLI tool that connects to IRCHighway (#ebooks channel) to s
 - Handles connection to irc.irchighway.net
 - Manages join/part for #ebooks channel
 - Sends messages to channel (@search, !Bsk commands)
-- Generates random nickname (ircbooks_xxxx format)
+- Generates random nickname (shelfseeker_xxxx format)
 - Emits events for DCC transfers and connection states
 
 ### 2. `src/irc/dccHandler.ts` - DCC File Transfer Handler
@@ -135,7 +135,7 @@ interface SearchResult {
 ## Project Structure
 
 ```
-ircbooks/
+shelfseeker/
 ├── src/
 │   ├── index.ts                 # Main entry point
 │   ├── irc/
@@ -182,7 +182,7 @@ ircbooks/
 - Server: irc.irchighway.net
 - Port: 6667
 - Channel: #ebooks
-- Nickname: ircbooks_ + random 4-digit number
+- Nickname: shelfseeker_ + random 4-digit number
 - Download directory: ./downloads/
 - Temp directory: ./.tmp/
 - Search timeout: 30 seconds
