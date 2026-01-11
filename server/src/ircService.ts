@@ -9,14 +9,18 @@ type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
 
 // Web API SearchResult format (different from CLI)
 export interface SearchResult {
+  source: 'irc' | 'nzb';
+  sourceProvider: string;
   botName: string;
   bookNumber: number;
   title: string;
   author: string;
   fileType: string;
   size: string;
-  command: string;
+  command?: string;          // IRC only
   filename: string;
+  nzbUrl?: string;           // NZB only
+  guid?: string;             // NZB only
 }
 
 export class IrcService {
@@ -162,6 +166,8 @@ export class IrcService {
 
     // Convert CLI format to Web API format
     const webResults: SearchResult[] = cliResults.map((r, index) => ({
+      source: 'irc' as const,
+      sourceProvider: r.botCommand.replace('!', ''),
       botName: r.botCommand.replace('!', ''),
       bookNumber: index + 1,
       title: r.title,

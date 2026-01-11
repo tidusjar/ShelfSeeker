@@ -4,6 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { IrcService } from './ircService.js';
 import { ConfigService } from './configService.js';
+import { NzbService } from './nzbService.js';
+import { SearchService } from './searchService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +23,12 @@ await configService.initialize();
 
 // IRC Service (singleton) - initialized with configuration
 const ircService = new IrcService(configService.getIrcConfig());
+
+// NZB Service - handles Newznab API interactions
+const nzbService = new NzbService();
+
+// Search Service - orchestrates unified IRC + NZB searches
+const searchService = new SearchService(ircService, nzbService, configService);
 
 // Routes
 app.post('/api/connect', async (req, res) => {
@@ -45,7 +53,8 @@ app.post('/api/search', async (req, res) => {
       return res.json({ success: false, error: 'Invalid query' });
     }
 
-    const results = await ircService.search(query);
+    // Use unified search service (searches both IRC and NZB)
+    const results = await searchService.search(query);
     res.json({ success: true, data: results });
   } catch (error) {
     res.json({ success: false, error: (error as Error).message });
@@ -54,14 +63,116 @@ app.post('/api/search', async (req, res) => {
 
 app.post('/api/download', async (req, res) => {
   try {
-    const { command } = req.body;
+    const { source, command, nzbUrl, providerId } = req.body;
 
-    if (!command || typeof command !== 'string') {
-      return res.json({ success: false, error: 'Invalid command' });
+    if (!source || (source !== 'irc' && source !== 'nzb')) {
+      return res.json({ success: false, error: 'Invalid or missing source' });
     }
 
-    const filename = await ircService.download(command);
+    let filename: string;
+
+    if (source === 'irc') {
+      // IRC DCC download
+      if (!command || typeof command !== 'string') {
+        return res.json({ success: false, error: 'Invalid command for IRC download' });
+      }
+      filename = await ircService.download(command);
+    } else {
+      // NZB download
+      if (!nzbUrl || typeof nzbUrl !== 'string') {
+        return res.json({ success: false, error: 'Invalid nzbUrl for NZB download' });
+      }
+
+      // Get provider API key
+      const providers = configService.getNzbProviders();
+      const provider = providers.find(p => p.id === providerId);
+
+      if (!provider) {
+        return res.json({ success: false, error: 'NZB provider not found' });
+      }
+
+      filename = await nzbService.download(nzbUrl, provider.apiKey);
+    }
+
     res.json({ success: true, data: { filename } });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// NZB Provider endpoints
+app.get('/api/nzb/providers', (req, res) => {
+  try {
+    const providers = configService.getNzbProviders();
+    res.json({ success: true, data: providers });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+app.post('/api/nzb/providers', async (req, res) => {
+  try {
+    const provider = req.body;
+
+    if (!provider || typeof provider !== 'object') {
+      return res.json({ success: false, error: 'Invalid provider data' });
+    }
+
+    const newProvider = await configService.addNzbProvider(provider);
+    res.json({ success: true, data: newProvider });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+app.put('/api/nzb/providers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!updates || typeof updates !== 'object') {
+      return res.json({ success: false, error: 'Invalid update data' });
+    }
+
+    await configService.updateNzbProvider(id, updates);
+    res.json({ success: true, data: { message: 'Provider updated successfully' } });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+app.delete('/api/nzb/providers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await configService.deleteNzbProvider(id);
+    res.json({ success: true, data: { message: 'Provider deleted successfully' } });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+app.post('/api/nzb/providers/:id/test', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get the provider
+    const providers = configService.getNzbProviders();
+    const provider = providers.find(p => p.id === id);
+
+    if (!provider) {
+      return res.json({ success: false, error: 'Provider not found' });
+    }
+
+    // Perform a test search (using a common term)
+    const results = await nzbService.search('test', [provider]);
+
+    res.json({
+      success: true,
+      data: {
+        message: 'Connection successful',
+        resultCount: results.length
+      }
+    });
   } catch (error) {
     res.json({ success: false, error: (error as Error).message });
   }

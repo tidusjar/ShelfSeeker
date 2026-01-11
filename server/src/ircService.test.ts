@@ -27,6 +27,8 @@ describe('IRC Service - Search Result Mapping', () => {
 
     // Simulate the mapping done in ircService.ts
     const webResults: SearchResult[] = cliResults.map((r, index) => ({
+      source: 'irc' as const,
+      sourceProvider: r.botCommand.replace('!', ''),
       botName: r.botCommand.replace('!', ''),
       bookNumber: index + 1,
       title: r.title,
@@ -40,6 +42,8 @@ describe('IRC Service - Search Result Mapping', () => {
     expect(webResults).toHaveLength(2);
     
     expect(webResults[0]).toEqual({
+      source: 'irc',
+      sourceProvider: 'Bsk',
       botName: 'Bsk',
       bookNumber: 1,
       title: 'Harry Potter',
@@ -51,6 +55,8 @@ describe('IRC Service - Search Result Mapping', () => {
     });
 
     expect(webResults[1]).toEqual({
+      source: 'irc',
+      sourceProvider: 'SearchBot',
       botName: 'SearchBot',
       bookNumber: 2,
       title: 'The Shining',
@@ -76,6 +82,8 @@ describe('IRC Service - Search Result Mapping', () => {
     ];
 
     const webResults: SearchResult[] = cliResults.map((r, index) => ({
+      source: 'irc' as const,
+      sourceProvider: r.botCommand.replace('!', ''),
       botName: r.botCommand.replace('!', ''),
       bookNumber: index + 1,
       title: r.title,
@@ -87,6 +95,8 @@ describe('IRC Service - Search Result Mapping', () => {
     }));
 
     expect(webResults[0]).toEqual({
+      source: 'irc',
+      sourceProvider: 'Ebook',
       botName: 'Ebook',
       bookNumber: 1,
       title: 'Unknown Book',
@@ -110,6 +120,8 @@ describe('IRC Service - Search Result Mapping', () => {
     };
 
     const webResult: SearchResult = {
+      source: 'irc',
+      sourceProvider: cliResult.botCommand.replace('!', ''),
       botName: cliResult.botCommand.replace('!', ''),
       bookNumber: 1,
       title: cliResult.title,
@@ -136,6 +148,8 @@ describe('IRC Service - Search Result Mapping', () => {
     }));
 
     const webResults: SearchResult[] = cliResults.map((r, index) => ({
+      source: 'irc' as const,
+      sourceProvider: r.botCommand.replace('!', ''),
       botName: r.botCommand.replace('!', ''),
       bookNumber: index + 1,
       title: r.title,

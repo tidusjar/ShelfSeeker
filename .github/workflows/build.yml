@@ -1,0 +1,116 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        component: [cli, web, server]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install CLI dependencies
+        if: matrix.component == 'cli'
+        run: npm ci
+
+      - name: Build CLI
+        if: matrix.component == 'cli'
+        run: npm run build
+
+      - name: Test CLI
+        if: matrix.component == 'cli'
+        run: npm run test:run
+
+      - name: Install web dependencies
+        if: matrix.component == 'web'
+        working-directory: ./web
+        run: npm ci
+
+      - name: Build web
+        if: matrix.component == 'web'
+        working-directory: ./web
+        run: npm run build
+
+      - name: Test web
+        if: matrix.component == 'web'
+        working-directory: ./web
+        run: npm run test:run
+
+      - name: Install server dependencies
+        if: matrix.component == 'server'
+        working-directory: ./server
+        run: npm ci
+
+      - name: Build server
+        if: matrix.component == 'server'
+        working-directory: ./server
+        run: npm run build
+
+      - name: Test server
+        if: matrix.component == 'server'
+        working-directory: ./server
+        run: npm run test:run
+
+  docker-build-push:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

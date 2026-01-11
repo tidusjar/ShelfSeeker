@@ -18,27 +18,25 @@ export interface NzbSearchItem {
   link: string;                  // NZB download URL from <link>
   guid: string;                  // Unique identifier from <guid>
   pubDate: string;               // Publication date from <pubDate>
-  size: string;                  // From <newznab:attr name="size">
-  category: string;              // From <category>
-  description: string;           // From <description>
-  provider: string;              // Provider name for tracking
+  size: number;                  // Bytes from <newznab:attr name="size">
 }
 
 export interface NzbApiResponse {
-  offset: number;                // From <newznab:response offset>
-  total: number;                 // From <newznab:response total>
   items: NzbSearchItem[];        // Parsed <item> elements
+  total: number;                 // Total number of items
 }
 
 export interface NzbSearchResult {
   source: 'nzb';
   sourceProvider: string;        // Provider name
+  providerId: string;            // Provider UUID for download routing
   botName: string;               // Same as sourceProvider for compatibility
+  bookNumber: number;            // Always 0 for NZB (IRC compatibility)
   title: string;
   author: string;
   fileType: string;
-  size: string;
+  size: string;                  // Formatted size string
+  filename: string;              // Extracted from title
   nzbUrl: string;                // For download
   guid: string;                  // Unique identifier
-  filename: string;              // Extracted from title
 }

@@ -45,10 +45,10 @@ const DEFAULT_CONFIG: AppConfig = {
   sources: {
     irc: {
       enabled: true,
-      server: process.env.IRC_SERVER || 'irc.irchighway.net',
-      port: parseInt(process.env.IRC_PORT || '6667', 10),
-      channel: process.env.IRC_CHANNEL || '#ebooks',
-      searchCommand: process.env.IRC_SEARCH_COMMAND || '@search',
+      server: 'irc.irchighway.net',
+      port: 6667,
+      channel: '#ebooks',
+      searchCommand: '@search',
       connectionTimeout: 30000,
       searchTimeout: 30000,
       downloadTimeout: 300000,
