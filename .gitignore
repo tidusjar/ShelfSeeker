@@ -5,3 +5,9 @@ downloads/
 *.log
 .DS_Store
 .env
+
+# TypeScript build artifacts in src (should only be in dist/)
+src/**/*.js
+src/**/*.d.ts
+src/**/*.js.map
+src/**/*.d.ts.map

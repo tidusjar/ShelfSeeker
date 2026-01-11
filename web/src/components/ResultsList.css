@@ -132,7 +132,7 @@
 .result-content {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
   min-width: 0;
 }
 
@@ -148,6 +148,15 @@
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.result-author {
+  font-family: var(--font-sans);
+  font-size: 0.938rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0;
+  opacity: 0.9;
 }
 
 .result-meta {
@@ -174,6 +183,14 @@
 .meta-value {
   color: var(--text-secondary);
   font-weight: 500;
+}
+
+.meta-filetype {
+  color: var(--accent-secondary);
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  background: rgba(255, 121, 198, 0.1);
+  border-radius: 3px;
 }
 
 .download-button {

@@ -75,11 +75,49 @@ export class SearchResultParser {
       return null;
     }
 
+    // Extract metadata from filename
+    const { title, author, fileType } = this.extractMetadata(filename);
+
     return {
       botCommand: botCommand.trim(),
       filename: filename,
       filesize: filesize,
-      rawCommand: `${botCommand.trim()} ${filename}`
+      rawCommand: `${botCommand.trim()} ${filename}`,
+      title,
+      author,
+      fileType
+    };
+  }
+
+  /**
+   * Extract title, author, and file type from filename
+   * Common patterns:
+   * - "Author - Title.ext"
+   * - "Title.ext"
+   * - "Author - Series - Book Number - Title.ext"
+   */
+  private static extractMetadata(filename: string): { title: string; author: string; fileType: string } {
+    // Extract file extension
+    const lastDot = filename.lastIndexOf('.');
+    const fileType = lastDot > 0 ? filename.substring(lastDot + 1).toLowerCase() : 'unknown';
+    const nameWithoutExt = lastDot > 0 ? filename.substring(0, lastDot) : filename;
+
+    // Try to split by ' - ' to find author
+    const parts = nameWithoutExt.split(' - ');
+    let author = '';
+    let title = nameWithoutExt;
+
+    if (parts.length >= 2) {
+      // First part is likely the author
+      author = parts[0].trim();
+      // Rest is the title (rejoin in case there are multiple dashes)
+      title = parts.slice(1).join(' - ').trim();
+    }
+
+    return {
+      title,
+      author,
+      fileType
     };
   }
 

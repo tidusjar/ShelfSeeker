@@ -4,8 +4,9 @@ import SearchInterface from './components/SearchInterface';
 import ResultsList from './components/ResultsList';
 import DownloadPanel from './components/DownloadPanel';
 import StatusBar from './components/StatusBar';
+import SettingsModal from './components/SettingsModal';
 import { api } from './api';
-import type { SearchResult, ConnectionStatus, DownloadProgress } from './types';
+import type { SearchResult, ConnectionStatus, DownloadProgress, ConfigData } from './types';
 import './App.css';
 
 function App() {
@@ -14,11 +15,21 @@ function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [currentDownload, setCurrentDownload] = useState<DownloadProgress | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [config, setConfig] = useState<ConfigData | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    // Auto-connect on mount
+    // Load configuration and auto-connect on mount
+    loadConfig();
     handleConnect();
   }, []);
+
+  const loadConfig = async () => {
+    const response = await api.getConfig();
+    if (response.success && response.data) {
+      setConfig(response.data);
+    }
+  };
 
   const handleConnect = async () => {
     setConnectionStatus('connecting');
@@ -73,6 +84,10 @@ function App() {
     }
   };
 
+  const handleSaveConfig = (newConfig: ConfigData) => {
+    setConfig(newConfig);
+  };
+
   return (
     <div className="app">
       {/* Grid Background */}
@@ -100,7 +115,19 @@ function App() {
                 <p className="logo-subtitle">Digital Library Terminal</p>
               </div>
             </div>
-            <StatusBar status={connectionStatus} />
+            <div className="header-actions">
+              <StatusBar status={connectionStatus} />
+              <motion.button
+                className="settings-button"
+                onClick={() => setShowSettings(true)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="button-brackets">[</span>
+                <span className="button-text">⚙ Settings</span>
+                <span className="button-brackets">]</span>
+              </motion.button>
+            </div>
           </div>
           <div className="header-border" />
         </motion.header>
@@ -171,11 +198,11 @@ function App() {
           <div className="footer-content">
             <div className="footer-text">
               <span className="footer-label">Server:</span>
-              <span className="footer-value">irc.irchighway.net</span>
+              <span className="footer-value">{config?.irc.server || 'Loading...'}</span>
             </div>
             <div className="footer-text">
               <span className="footer-label">Channel:</span>
-              <span className="footer-value">#ebooks</span>
+              <span className="footer-value">{config?.irc.channel || 'Loading...'}</span>
             </div>
             <div className="footer-text footer-glow">
               {searchResults.length > 0 && `${searchResults.length} results found`}
@@ -183,6 +210,15 @@ function App() {
           </div>
         </footer>
       </motion.div>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        onSave={handleSaveConfig}
+        currentConfig={config}
+        isDownloading={currentDownload?.status === 'downloading'}
+      />
     </div>
   );
 }

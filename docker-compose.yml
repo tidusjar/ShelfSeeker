@@ -1,0 +1,30 @@
+services:
+  ircbooks:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ircbooks
+    ports:
+      - "3001:3001"
+    volumes:
+      # Persist downloads and configuration
+      - ${DOWNLOAD_PATH:-./downloads}:/app/server/downloads
+      - ${DATA_PATH:-./data}:/app/server/data
+    environment:
+      - NODE_ENV=production
+      # IRC Configuration (optional - can also be set via web UI)
+      - IRC_SERVER=${IRC_SERVER:-irc.irchighway.net}
+      - IRC_PORT=${IRC_PORT:-6667}
+      - IRC_CHANNEL=${IRC_CHANNEL:-#ebooks}
+      - IRC_SEARCH_COMMAND=${IRC_SEARCH_COMMAND:-@search}
+      # Paths
+      - DOWNLOAD_PATH=/app/server/downloads
+      - TEMP_PATH=/app/server/.tmp
+      - CONFIG_PATH=/app/server/data/config.json
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

@@ -66,19 +66,22 @@ function ResultsList({ results, onDownload, searchQuery }: ResultsListProps) {
 
             <div className="result-content">
               <h3 className="result-title">{result.title}</h3>
+              {result.author && (
+                <p className="result-author">{result.author}</p>
+              )}
 
               <div className="result-meta">
                 <div className="meta-item">
-                  <span className="meta-label">Bot:</span>
-                  <span className="meta-value">{result.botName}</span>
+                  <span className="meta-label">Type:</span>
+                  <span className="meta-value meta-filetype">{result.fileType.toUpperCase()}</span>
                 </div>
                 <div className="meta-item">
                   <span className="meta-label">Size:</span>
                   <span className="meta-value">{formatFileSize(result.size)}</span>
                 </div>
                 <div className="meta-item">
-                  <span className="meta-label">ID:</span>
-                  <span className="meta-value">#{result.bookNumber}</span>
+                  <span className="meta-label">Bot:</span>
+                  <span className="meta-value">{result.botName}</span>
                 </div>
               </div>
             </div>
