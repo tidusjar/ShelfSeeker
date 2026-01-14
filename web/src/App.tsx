@@ -1,24 +1,34 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import SearchInterface from './components/SearchInterface';
-import ResultsList from './components/ResultsList';
+import { AnimatePresence, motion } from 'framer-motion';
+import Home from './components/Home';
+import SearchResults from './components/SearchResults';
 import DownloadPanel from './components/DownloadPanel';
 import SettingsModal from './components/SettingsModal';
 import { api } from './api';
-import type { SearchResult, DownloadProgress, ConfigData } from './types';
-import './App.css';
+import type { SearchResult, DownloadProgress, ConfigData, ConnectionStatus, NzbProvider, Downloader } from './types';
+
+type View = 'home' | 'results';
 
 function App() {
+  const [view, setView] = useState<View>('home');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [currentDownload, setCurrentDownload] = useState<DownloadProgress | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [config, setConfig] = useState<ConfigData | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [config, setConfig] = useState<ConfigData | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const [nzbProviders, setNzbProviders] = useState<NzbProvider[]>([]);
+  const [usenetDownloader, setUsenetDownloader] = useState<Downloader | null>(null);
 
   useEffect(() => {
-    // Load configuration on mount
     loadConfig();
+    loadStatus();
+    loadProviders();
+
+    // Poll status every 5 seconds
+    const statusInterval = setInterval(loadStatus, 5000);
+    return () => clearInterval(statusInterval);
   }, []);
 
   const loadConfig = async () => {
@@ -26,6 +36,37 @@ function App() {
     if (response.success && response.data) {
       setConfig(response.data);
     }
+  };
+
+  const loadStatus = async () => {
+    const response = await api.getStatus();
+    if (response.success && response.data) {
+      setConnectionStatus(response.data.connectionStatus);
+    }
+  };
+
+  const loadProviders = async () => {
+    const [providersResponse, downloaderResponse] = await Promise.all([
+      api.getNzbProviders(),
+      api.getEnabledUsenetDownloader(),
+    ]);
+
+    if (providersResponse.success && providersResponse.data) {
+      setNzbProviders(providersResponse.data);
+    }
+
+    if (downloaderResponse.success && downloaderResponse.data) {
+      setUsenetDownloader(downloaderResponse.data);
+    }
+  };
+
+  const handleSaveConfig = (newConfig: ConfigData) => {
+    setConfig(newConfig);
+    // Reload status and providers after config change
+    setTimeout(() => {
+      loadStatus();
+      loadProviders();
+    }, 1000);
   };
 
   const handleSearch = async (query: string) => {
@@ -38,6 +79,7 @@ function App() {
 
     if (response.success && response.data) {
       setSearchResults(response.data);
+      setView('results');
     }
   };
 
@@ -68,11 +110,8 @@ function App() {
         speed: '0 KB/s',
         status: 'error',
       });
+      setTimeout(() => setCurrentDownload(null), 5000);
     }
-  };
-
-  const handleSaveConfig = (newConfig: ConfigData) => {
-    setConfig(newConfig);
   };
 
   const handleSendToDownloader = async (result: SearchResult) => {
@@ -121,111 +160,64 @@ function App() {
     }
   };
 
+  const handleBackToHome = () => {
+    setView('home');
+    setSearchResults([]);
+    setSearchQuery('');
+  };
+
   return (
-    <div className="app">
-      {/* Grid Background */}
-      <div className="grid-background" />
+    <div className="min-h-screen bg-background-dark">
+      <AnimatePresence mode="wait">
+        {view === 'home' ? (
+          <motion.div
+            key="home"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Home
+              onSearch={handleSearch}
+              isSearching={isSearching}
+              onOpenSettings={() => setShowSettings(true)}
+              config={config}
+              connectionStatus={connectionStatus}
+              nzbProviders={nzbProviders}
+              usenetDownloader={usenetDownloader}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <SearchResults
+              results={searchResults}
+              searchQuery={searchQuery}
+              onDownload={handleDownload}
+              onSendToDownloader={handleSendToDownloader}
+              onBackToHome={handleBackToHome}
+              onNewSearch={handleSearch}
+              onOpenSettings={() => setShowSettings(true)}
+              config={config}
+              connectionStatus={connectionStatus}
+              nzbProviders={nzbProviders}
+              usenetDownloader={usenetDownloader}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Main Content */}
-      <motion.div
-        className="container"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        {/* Header */}
-        <motion.header
-          className="header"
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-        >
-          <div className="header-content">
-            <div className="logo-section">
-              <div className="logo-icon">█</div>
-              <div>
-                <h1 className="logo-title">ShelfSeeker</h1>
-                <p className="logo-subtitle">Multi-Source Digital Library</p>
-              </div>
-            </div>
-            <div className="header-actions">
-              <motion.button
-                className="settings-button"
-                onClick={() => setShowSettings(true)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="button-brackets">[</span>
-                <span className="button-text">⚙ Settings</span>
-                <span className="button-brackets">]</span>
-              </motion.button>
-            </div>
-          </div>
-          <div className="header-border" />
-        </motion.header>
-
-        {/* Search Interface */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-        >
-          <SearchInterface
-            onSearch={handleSearch}
-            isSearching={isSearching}
-            disabled={false}
-          />
-        </motion.div>
-
-        {/* Results Section */}
-        <AnimatePresence mode="wait">
-          {searchResults.length > 0 && (
-            <motion.div
-              key="results"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <ResultsList
-                results={searchResults}
-                onDownload={handleDownload}
-                onSendToDownloader={handleSendToDownloader}
-                searchQuery={searchQuery}
-              />
-            </motion.div>
-          )}
-
-          {isSearching && (
-            <motion.div
-              key="searching"
-              className="searching-state"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <div className="searching-content">
-                <div className="spinner" />
-                <p className="searching-text">
-                  <span className="glow">Searching archives</span>
-                  <span className="dots">
-                    <span>.</span>
-                    <span>.</span>
-                    <span>.</span>
-                  </span>
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Download Panel */}
-        <AnimatePresence>
-          {currentDownload && (
-            <DownloadPanel download={currentDownload} />
-          )}
-        </AnimatePresence>
-      </motion.div>
+      {/* Download Panel */}
+      <AnimatePresence>
+        {currentDownload && (
+          <DownloadPanel download={currentDownload} />
+        )}
+      </AnimatePresence>
 
       {/* Settings Modal */}
       <SettingsModal
@@ -235,6 +227,23 @@ function App() {
         currentConfig={config}
         isDownloading={currentDownload?.status === 'downloading'}
       />
+
+      {/* Loading Overlay */}
+      <AnimatePresence>
+        {isSearching && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="bg-slate-800 rounded-xl p-8 flex flex-col items-center gap-4">
+              <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-white text-lg font-medium">Searching archives...</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
