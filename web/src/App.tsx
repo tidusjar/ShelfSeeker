@@ -3,11 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Home from './components/Home';
 import SearchResults from './components/SearchResults';
 import DownloadPanel from './components/DownloadPanel';
-import SettingsModal from './components/SettingsModal';
+import Settings from './components/Settings';
 import { api } from './api';
 import type { SearchResult, DownloadProgress, ConfigData, ConnectionStatus, NzbProvider, Downloader } from './types';
 
-type View = 'home' | 'results';
+type View = 'home' | 'results' | 'settings';
 
 function App() {
   const [view, setView] = useState<View>('home');
@@ -15,7 +15,6 @@ function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [currentDownload, setCurrentDownload] = useState<DownloadProgress | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [nzbProviders, setNzbProviders] = useState<NzbProvider[]>([]);
@@ -60,13 +59,11 @@ function App() {
     }
   };
 
-  const handleSaveConfig = (newConfig: ConfigData) => {
-    setConfig(newConfig);
-    // Reload status and providers after config change
-    setTimeout(() => {
-      loadStatus();
-      loadProviders();
-    }, 1000);
+  const handleConfigUpdate = () => {
+    // Reload config, status and providers after config change
+    loadConfig();
+    loadStatus();
+    loadProviders();
   };
 
   const handleSearch = async (query: string) => {
@@ -166,6 +163,14 @@ function App() {
     setSearchQuery('');
   };
 
+  const handleOpenSettings = () => {
+    setView('settings');
+  };
+
+  const handleBackFromSettings = () => {
+    setView('home');
+  };
+
   return (
     <div className="min-h-screen bg-background-dark">
       <AnimatePresence mode="wait">
@@ -180,14 +185,14 @@ function App() {
             <Home
               onSearch={handleSearch}
               isSearching={isSearching}
-              onOpenSettings={() => setShowSettings(true)}
+              onOpenSettings={handleOpenSettings}
               config={config}
               connectionStatus={connectionStatus}
               nzbProviders={nzbProviders}
               usenetDownloader={usenetDownloader}
             />
           </motion.div>
-        ) : (
+        ) : view === 'results' ? (
           <motion.div
             key="results"
             initial={{ opacity: 0 }}
@@ -202,11 +207,27 @@ function App() {
               onSendToDownloader={handleSendToDownloader}
               onBackToHome={handleBackToHome}
               onNewSearch={handleSearch}
-              onOpenSettings={() => setShowSettings(true)}
+              onOpenSettings={handleOpenSettings}
               config={config}
               connectionStatus={connectionStatus}
               nzbProviders={nzbProviders}
               usenetDownloader={usenetDownloader}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="settings"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Settings
+              onBack={handleBackFromSettings}
+              config={config}
+              connectionStatus={connectionStatus}
+              nzbProviders={nzbProviders}
+              onConfigUpdate={handleConfigUpdate}
             />
           </motion.div>
         )}
@@ -218,15 +239,6 @@ function App() {
           <DownloadPanel download={currentDownload} />
         )}
       </AnimatePresence>
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        onSave={handleSaveConfig}
-        currentConfig={config}
-        isDownloading={currentDownload?.status === 'downloading'}
-      />
 
       {/* Loading Overlay */}
       <AnimatePresence>

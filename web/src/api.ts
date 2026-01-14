@@ -103,6 +103,24 @@ export const api = {
     return response.json();
   },
 
+  async testNzbProviderData(provider: Omit<NzbProvider, 'id' | 'requestsToday' | 'lastResetDate'>): Promise<ApiResponse<{ message: string; resultCount: number }>> {
+    const response = await fetch(`${API_BASE}/nzb/providers/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(provider),
+    });
+    return response.json();
+  },
+
+  async toggleNzbProvider(id: string, enabled: boolean): Promise<ApiResponse<{ message: string }>> {
+    const response = await fetch(`${API_BASE}/nzb/providers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    });
+    return response.json();
+  },
+
   // Downloader Management
   async getUsenetDownloaders(): Promise<ApiResponse<Downloader[]>> {
     const response = await fetch(`${API_BASE}/downloaders/usenet`);
