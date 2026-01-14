@@ -5,13 +5,15 @@ import type { SearchResult, ConfigData, ConnectionStatus, NzbProvider, Downloade
 interface SearchResultsProps {
   results: SearchResult[];
   searchQuery: string;
-  onDownload: (result: SearchResult) => void;
+  onDownload: (result: SearchResult) => Promise<void>;
+  onSendToDownloader: (result: SearchResult) => Promise<void>;
   onBackToHome: () => void;
   onNewSearch: (query: string) => void;
   onOpenSettings: () => void;
   config: ConfigData | null;
   connectionStatus: ConnectionStatus;
   nzbProviders: NzbProvider[];
+  usenetDownloader: Downloader | null;
 }
 
 function SearchResults({
@@ -20,10 +22,7 @@ function SearchResults({
   onDownload,
   onBackToHome,
   onNewSearch,
-  onOpenSettings,
-  config,
-  connectionStatus,
-  nzbProviders
+  onOpenSettings
 }: SearchResultsProps) {
   const [query, setQuery] = useState(searchQuery);
   const [fileTypeFilter, setFileTypeFilter] = useState<Set<string>>(new Set(['EPUB']));
