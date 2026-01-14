@@ -211,7 +211,7 @@ function NewznabSettings({ nzbProviders, onConfigUpdate }: NewznabSettingsProps)
       apiKey: provider.apiKey,
       categories: provider.categories.join(','),
       priority: provider.priority.toString(),
-      apiLimit: provider.apiLimit.toString(),
+      apiLimit: provider.apiLimit?.toString() ?? '',
     });
     // Scroll to form
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });

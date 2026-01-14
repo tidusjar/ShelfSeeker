@@ -63,7 +63,10 @@ function IrcSettings({ config, connectionStatus, onConfigUpdate }: IrcSettingsPr
     setSaveMessage(null);
 
     try {
-      const response = await api.updateConfig({ irc: ircConfig });
+      const response = await api.updateConfig({ 
+        irc: ircConfig,
+        general: { downloadPath: '' } // Will be preserved by server
+      });
 
       if (response.success && response.data) {
         setSaveMessage({

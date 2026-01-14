@@ -6,28 +6,24 @@ interface SearchResultsProps {
   results: SearchResult[];
   searchQuery: string;
   onDownload: (result: SearchResult) => void;
-  onSendToDownloader?: (result: SearchResult) => void;
   onBackToHome: () => void;
   onNewSearch: (query: string) => void;
   onOpenSettings: () => void;
   config: ConfigData | null;
   connectionStatus: ConnectionStatus;
   nzbProviders: NzbProvider[];
-  usenetDownloader: Downloader | null;
 }
 
 function SearchResults({
   results,
   searchQuery,
   onDownload,
-  onSendToDownloader,
   onBackToHome,
   onNewSearch,
   onOpenSettings,
   config,
   connectionStatus,
-  nzbProviders,
-  usenetDownloader
+  nzbProviders
 }: SearchResultsProps) {
   const [query, setQuery] = useState(searchQuery);
   const [fileTypeFilter, setFileTypeFilter] = useState<Set<string>>(new Set(['EPUB']));
@@ -36,11 +32,6 @@ function SearchResults({
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 10;
-
-  // Derive available sources from actual configuration
-  const ircAvailable = config?.irc?.enabled && connectionStatus === 'connected';
-  const newznabAvailable = nzbProviders.filter(p => p.enabled).length > 0;
-  const torrentsAvailable = false; // Not implemented yet
 
   // Check if results contain each source type
   const hasIrcResults = results.some(r => r.source === 'irc');
