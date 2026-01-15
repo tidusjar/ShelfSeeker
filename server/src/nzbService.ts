@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { NzbProvider, NzbSearchResult, NzbApiResponse, NzbSearchItem } from './types.js';
-import { FilenameParser } from '../../src/parser/filenameParser.js';
+import { NZBFilenameParser } from '../../src/parser/nzbFilenameParser.js';
 
 export class NzbService {
   private xmlParser: XMLParser;
@@ -197,12 +197,12 @@ export class NzbService {
   }
 
   /**
-   * Extract metadata from NZB title using the unified parser.
-   * Supports multiple filename formats through strategy-based parsing.
+   * Extract metadata from NZB title using the NZB-specific parser.
+   * Handles scene release formats with dot-separated metadata.
    */
   private extractMetadata(title: string): { title: string; author: string; fileType: string } {
 
-    const parsed = FilenameParser.parse(title);
+    const parsed = NZBFilenameParser.parse(title);
 
     // Convert empty author to "Unknown" for NZB results (maintains backward compatibility)
     const author = parsed.author || 'Unknown';

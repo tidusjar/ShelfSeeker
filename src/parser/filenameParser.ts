@@ -9,7 +9,7 @@ import { strategies } from './parsingStrategies.js';
  * Valid ebook file types recognized by the parser.
  */
 const VALID_EBOOK_TYPES = [
-  'epub', 'mobi', 'azw3', 'azw', 'pdf', 'txt', 'doc', 'docx',
+  'epub', 'mobi', 'azw3','azw4', 'kfx', 'prc', 'djvu', 'azw', 'pdf', 'txt', 'doc', 'docx',
   'rtf', 'html', 'htm', 'fb2', 'lit', 'pdb', 'cbz', 'cbr'
 ];
 
@@ -138,7 +138,7 @@ export class FilenameParser {
     }
 
     // Priority 4: Embedded metadata (e.g., ".EPUB.eBook", "RETAIL.EPUB")
-    const metadataMatch = filename.match(/\.(EPUB|PDF|MOBI|AZW3|AZW)\..*$/i);
+    const metadataMatch = filename.match(/\.(EPUB|PDF|MOBI|AZW3|AZW4|AZW)\..*$/i);
     if (metadataMatch) {
       type = metadataMatch[1].toLowerCase();
       cleanName = filename.substring(0, filename.indexOf(metadataMatch[0]));
@@ -146,7 +146,7 @@ export class FilenameParser {
     }
 
     // Also check for uppercase embedded without dots
-    const upperMatch = filename.match(/\b(EPUB|PDF|MOBI|AZW3|AZW)\b/i);
+    const upperMatch = filename.match(/\b(EPUB|PDF|MOBI|AZW3|AZW4|AZW)\b/i);
     if (upperMatch && VALID_EBOOK_TYPES.includes(upperMatch[1].toLowerCase())) {
       type = upperMatch[1].toLowerCase();
       cleanName = filename.replace(upperMatch[0], '').trim();

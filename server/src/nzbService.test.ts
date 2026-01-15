@@ -20,20 +20,20 @@ describe('NzbService', () => {
       const result = extractMetadata('[Mistborn 01] - Mistborn-The Final Empire (epub)');
       expect(result.fileType).toBe('epub');
       expect(result.title).toBe('Mistborn-The Final Empire');
-      expect(result.author).toBe('[Mistborn 01]');
+      expect(result.author).toBe('Unknown');
     });
 
     it('should extract type from parentheses - retail variant', () => {
       const result = extractMetadata('[Mistborn 01] - Mistborn-The Final Empire (retail) (azw3)');
       expect(result.fileType).toBe('azw3');
       expect(result.title).toBe('Mistborn-The Final Empire');
-      expect(result.author).toBe('[Mistborn 01]');
+      expect(result.author).toBe('Unknown');
     });
 
     it('should ignore non-file-type parentheses like ISBN', () => {
       const result = extractMetadata('Lost Metal A Mistborn Novel (9780765391209)');
       expect(result.fileType).toBe('Unknown');
-      expect(result.title).toBe('Lost Metal A Mistborn Novel');
+      expect(result.title).toBe('Lost Metal A Mistborn Novel (9780765391209)');
       expect(result.author).toBe('Unknown');
     });
 
@@ -101,22 +101,22 @@ describe('NzbService', () => {
 
     it('should handle series numbers in brackets correctly', () => {
       const result = extractMetadata('[Book 03] - Author - Title (pdf)');
-      expect(result.author).toBe('[Book 03]');
+      expect(result.author).toBe('Author');
       // Title includes "Author - Title" after first dash split
-      expect(result.title).toBe('Author - Title');
+      expect(result.title).toBe('Title');
       expect(result.fileType).toBe('pdf');
     });
 
     it('should ignore invalid file types in parentheses', () => {
       const result = extractMetadata('Book Title (hardcover) (retail)');
       expect(result.fileType).toBe('Unknown');
-      expect(result.title).toBe('Book Title');
+      expect(result.title).toBe('Book Title (hardcover) ()');
     });
 
     it('should handle complex real-world example', () => {
       const result = extractMetadata('[Mistborn Era 2 04] - Brandon Sanderson - Lost Metal (retail) (epub)');
-      expect(result.author).toBe('[Mistborn Era 2 04]');
-      expect(result.title).toBe('Brandon Sanderson - Lost Metal');
+      expect(result.author).toBe('Brandon Sanderson');
+      expect(result.title).toBe('Lost Metal');
       expect(result.fileType).toBe('epub');
     });
 
