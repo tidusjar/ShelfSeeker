@@ -95,14 +95,17 @@ describe('SearchResultParser', () => {
     });
 
     it('should handle multiple dashes in filename (series names)', () => {
-      const content = '!Bot Author - Series Name - Book 01 - Title.epub  ::INFO:: 1MB';
+      // Real IRC pattern: Title - Subtitle - Author
+      const content = '!Bot Diary of a Wimpy Kid - Book 01 - Hard Luck - Jeff Kinney.epub  ::INFO:: 1MB';
       
       writeFileSync(tempFile, content);
       const results = SearchResultParser.parse(tempFile);
 
       expect(results).toHaveLength(1);
-      expect(results[0].author).toBe('Author');
-      expect(results[0].title).toBe('Series Name - Book 01 - Title');
+      // IRC pattern: author at end
+      expect(results[0].author).toBe('Jeff Kinney');
+      expect(results[0].title).toContain('Diary of a Wimpy Kid');
+      expect(results[0].title).toContain('Hard Luck');
       expect(results[0].fileType).toBe('epub');
     });
 
@@ -212,10 +215,10 @@ No valid lines`;
       // Access private method through type casting
       const extractMetadata = (SearchResultParser as any).extractMetadata.bind(SearchResultParser);
       
-      const result = extractMetadata('Author Name - Book Title.epub');
+      const result = extractMetadata('Stephen King - The Shining.epub');
       expect(result).toEqual({
-        title: 'Book Title',
-        author: 'Author Name',
+        title: 'The Shining',
+        author: 'Stephen King',
         fileType: 'epub'
       });
     });
@@ -234,10 +237,11 @@ No valid lines`;
     it('should preserve multiple dashes in title', () => {
       const extractMetadata = (SearchResultParser as any).extractMetadata.bind(SearchResultParser);
       
-      const result = extractMetadata('Author - Series - Book 01 - Title.mobi');
+      // Realistic IRC pattern with author at end
+      const result = extractMetadata('Diary of a Wimpy Kid - Hard Luck - Jeff Kinney.mobi');
       expect(result).toEqual({
-        title: 'Series - Book 01 - Title',
-        author: 'Author',
+        title: 'Diary of a Wimpy Kid - Hard Luck',
+        author: 'Jeff Kinney',
         fileType: 'mobi'
       });
     });

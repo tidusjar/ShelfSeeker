@@ -224,9 +224,11 @@ function App() {
           >
             <Settings
               onBack={handleBackFromSettings}
+              onNewSearch={handleSearch}
               config={config}
               connectionStatus={connectionStatus}
               nzbProviders={nzbProviders}
+              usenetDownloader={usenetDownloader}
               onConfigUpdate={handleConfigUpdate}
             />
           </motion.div>

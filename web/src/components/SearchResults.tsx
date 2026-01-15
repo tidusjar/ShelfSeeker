@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Layout from './Layout';
 import type { SearchResult, ConfigData, ConnectionStatus, NzbProvider, Downloader } from '../types';
 
 interface SearchResultsProps {
@@ -22,15 +23,55 @@ function SearchResults({
   onDownload,
   onBackToHome,
   onNewSearch,
-  onOpenSettings
+  onOpenSettings,
+  config,
+  connectionStatus,
+  nzbProviders,
+  usenetDownloader
 }: SearchResultsProps) {
   const [query, setQuery] = useState(searchQuery);
-  const [fileTypeFilter, setFileTypeFilter] = useState<Set<string>>(new Set(['EPUB']));
-  const [sourceFilter, setSourceFilter] = useState<'irc' | 'newznab' | 'torrents' | null>('irc');
-  const [dateFilter, setDateFilter] = useState<'all' | '24h' | 'month'>('all');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [fileTypeFilter, setFileTypeFilter] = useState<Set<string>>(new Set());
+  const [sourceFilter, setSourceFilter] = useState<'irc' | 'newznab' | 'torrents' | null>(null);
+  const [authorFilter, setAuthorFilter] = useState<Set<string>>(new Set());
+  const [sourceProviderFilter, setSourceProviderFilter] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 10;
+
+  // Sync query state with searchQuery prop
+  useEffect(() => {
+    setQuery(searchQuery);
+  }, [searchQuery]);
+
+  // Extract unique file types from results
+  const availableFileTypes = useMemo(() => {
+    const types = new Set<string>();
+    results.forEach(result => {
+      types.add(result.fileType.toUpperCase());
+    });
+    return Array.from(types).sort();
+  }, [results]);
+
+  // Extract unique authors from results
+  const availableAuthors = useMemo(() => {
+    const authors = new Set<string>();
+    results.forEach(result => {
+      if (result.author && result.author.trim()) {
+        authors.add(result.author);
+      }
+    });
+    return Array.from(authors).sort();
+  }, [results]);
+
+  // Extract unique source providers from results
+  const availableSourceProviders = useMemo(() => {
+    const providers = new Set<string>();
+    results.forEach(result => {
+      if (result.sourceProvider) {
+        providers.add(result.sourceProvider);
+      }
+    });
+    return Array.from(providers).sort();
+  }, [results]);
 
   // Check if results contain each source type
   const hasIrcResults = results.some(r => r.source === 'irc');
@@ -46,12 +87,42 @@ function SearchResults({
     setFileTypeFilter(newSet);
   };
 
+  const toggleAuthor = (author: string) => {
+    const newSet = new Set(authorFilter);
+    if (newSet.has(author)) {
+      newSet.delete(author);
+    } else {
+      newSet.add(author);
+    }
+    setAuthorFilter(newSet);
+  };
+
+  const toggleSourceProvider = (provider: string) => {
+    const newSet = new Set(sourceProviderFilter);
+    if (newSet.has(provider)) {
+      newSet.delete(provider);
+    } else {
+      newSet.add(provider);
+    }
+    setSourceProviderFilter(newSet);
+  };
+
   const filteredResults = useMemo(() => {
     let filtered = results;
 
     // File type filter
     if (fileTypeFilter.size > 0) {
       filtered = filtered.filter(r => fileTypeFilter.has(r.fileType.toUpperCase()));
+    }
+
+    // Author filter
+    if (authorFilter.size > 0) {
+      filtered = filtered.filter(r => r.author && authorFilter.has(r.author));
+    }
+
+    // Source provider filter
+    if (sourceProviderFilter.size > 0) {
+      filtered = filtered.filter(r => sourceProviderFilter.has(r.sourceProvider));
     }
 
     // Source filter
@@ -64,7 +135,7 @@ function SearchResults({
     }
 
     return filtered;
-  }, [results, fileTypeFilter, sourceFilter]);
+  }, [results, fileTypeFilter, authorFilter, sourceProviderFilter, sourceFilter]);
 
   const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
@@ -88,59 +159,27 @@ function SearchResults({
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = (query: string) => {
     if (query.trim()) {
       onNewSearch(query.trim());
     }
   };
 
   return (
-    <div className="min-h-screen bg-background-dark dark:bg-background-dark text-slate-900 dark:text-slate-100">
-      {/* Top Navigation */}
-      <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-[#232f48] px-4 md:px-10 py-3">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-8">
-          <div className="flex items-center gap-8 flex-1">
-            <button onClick={onBackToHome} className="flex items-center gap-3 text-primary hover:opacity-80 transition-opacity">
-              <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
-                <span className="material-symbols-outlined">auto_stories</span>
-              </div>
-              <h2 className="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight">ShelfSeeker</h2>
-            </button>
-            <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <span className="material-symbols-outlined">search</span>
-                </div>
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border-none bg-slate-100 dark:bg-[#232f48] rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-[#1a2335] transition-all text-sm"
-                  placeholder="Search for titles, authors, or ISBNs..."
-                />
-              </div>
-            </form>
-          </div>
-          <div className="flex items-center gap-6">
-            <nav className="hidden lg:flex items-center gap-6">
-              <a className="hover:text-primary transition-colors text-sm font-medium" href="#">History</a>
-              <a className="hover:text-primary transition-colors text-sm font-medium" href="#">My Library</a>
-              <button
-                onClick={onOpenSettings}
-                className="hover:text-primary transition-colors text-sm font-medium"
-              >
-                Settings
-              </button>
-            </nav>
-            <div className="h-10 w-10 rounded-full border-2 border-primary/20 p-0.5">
-              <div className="w-full h-full bg-slate-300 dark:bg-slate-700 rounded-full" />
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-[1440px] mx-auto flex flex-col md:flex-row gap-8 px-4 md:px-10 py-8">
+    <Layout
+      showSearch={true}
+      searchQuery={query}
+      onSearchChange={setQuery}
+      onSearchSubmit={handleSearch}
+      onSettingsClick={onOpenSettings}
+      onLogoClick={onBackToHome}
+      config={config}
+      connectionStatus={connectionStatus}
+      nzbProviders={nzbProviders}
+      usenetDownloader={usenetDownloader}
+      showFooter={true}
+    >
+      <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row gap-8 px-4 md:px-10 py-8">
         {/* Sidebar Filters */}
         <aside className="w-full md:w-64 shrink-0 space-y-8">
           <div className="flex flex-col gap-6 md:sticky md:top-24">
@@ -148,7 +187,7 @@ function SearchResults({
             <div>
               <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider mb-4">File Type</h3>
               <div className="space-y-1">
-                {['EPUB', 'PDF', 'MOBI', 'AZW3'].map(type => (
+                {availableFileTypes.map(type => (
                   <label key={type} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#232f48] cursor-pointer group">
                     <input
                       type="checkbox"
@@ -210,52 +249,53 @@ function SearchResults({
               </div>
             </div>
 
-            {/* Date Filter */}
-            <div>
-              <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider mb-4">Date Added</h3>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setDateFilter('all')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                    dateFilter === 'all'
-                      ? 'bg-primary text-white'
-                      : 'hover:bg-slate-100 dark:hover:bg-[#232f48] text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-lg">calendar_today</span>
-                  <span className="text-sm font-medium">All Time</span>
-                </button>
-                <button
-                  onClick={() => setDateFilter('24h')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                    dateFilter === '24h'
-                      ? 'bg-primary text-white'
-                      : 'hover:bg-slate-100 dark:hover:bg-[#232f48] text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-lg">schedule</span>
-                  <span className="text-sm font-medium">Last 24 Hours</span>
-                </button>
-                <button
-                  onClick={() => setDateFilter('month')}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                    dateFilter === 'month'
-                      ? 'bg-primary text-white'
-                      : 'hover:bg-slate-100 dark:hover:bg-[#232f48] text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-lg">event</span>
-                  <span className="text-sm font-medium">This Month</span>
-                </button>
+            {/* Author Filter */}
+            {availableAuthors.length > 0 && (
+              <div>
+                <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider mb-4">Author</h3>
+                <div className="space-y-1 max-h-60 overflow-y-auto">
+                  {availableAuthors.map(author => (
+                    <label key={author} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#232f48] cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={authorFilter.has(author)}
+                        onChange={() => toggleAuthor(author)}
+                        className="h-5 w-5 rounded border-slate-300 dark:border-[#324467] bg-transparent text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">{author}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Source Provider Filter */}
+            {availableSourceProviders.length > 0 && (
+              <div>
+                <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider mb-4">Provider</h3>
+                <div className="space-y-1">
+                  {availableSourceProviders.map(provider => (
+                    <label key={provider} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#232f48] cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={sourceProviderFilter.has(provider)}
+                        onChange={() => toggleSourceProvider(provider)}
+                        className="h-5 w-5 rounded border-slate-300 dark:border-[#324467] bg-transparent text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">{provider}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Reset Button */}
             <button
               onClick={() => {
-                setFileTypeFilter(new Set(['EPUB']));
-                setSourceFilter('irc');
-                setDateFilter('all');
+                setFileTypeFilter(new Set());
+                setAuthorFilter(new Set());
+                setSourceProviderFilter(new Set());
+                setSourceFilter(null);
               }}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#232f48] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#232f48] hover:text-slate-900 dark:hover:text-white transition-all text-sm font-semibold"
             >
@@ -271,20 +311,6 @@ function SearchResults({
             <h2 className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight">
               Found {filteredResults.length} results for '{searchQuery}'
             </h2>
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#232f48] p-1 rounded-lg">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white dark:bg-background-dark shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
-              >
-                <span className="material-symbols-outlined text-lg">format_list_bulleted</span>
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white dark:bg-background-dark shadow-sm text-primary' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
-              >
-                <span className="material-symbols-outlined text-lg">grid_view</span>
-              </button>
-            </div>
           </div>
 
           {/* Results */}
@@ -399,24 +425,8 @@ function SearchResults({
             </div>
           )}
         </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="mt-20 border-t border-slate-200 dark:border-[#232f48] py-8">
-        <div className="max-w-[1440px] mx-auto px-10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-3 text-slate-400">
-            <span className="material-symbols-outlined">auto_stories</span>
-            <span className="text-sm font-medium">ShelfSeeker Search Tool © 2024</span>
-          </div>
-          <div className="flex gap-8">
-            <a className="text-xs font-semibold text-slate-400 hover:text-primary transition-colors" href="#">API Docs</a>
-            <a className="text-xs font-semibold text-slate-400 hover:text-primary transition-colors" href="#">Safety Guide</a>
-            <a className="text-xs font-semibold text-slate-400 hover:text-primary transition-colors" href="#">Privacy Policy</a>
-            <a className="text-xs font-semibold text-slate-400 hover:text-primary transition-colors" href="#">Donate</a>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </Layout>
   );
 }
 

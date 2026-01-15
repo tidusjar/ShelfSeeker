@@ -2,6 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { NzbProvider, NzbSearchResult, NzbApiResponse, NzbSearchItem } from './types.js';
+import { FilenameParser } from '../../src/parser/filenameParser.js';
 
 export class NzbService {
   private xmlParser: XMLParser;
@@ -196,71 +197,20 @@ export class NzbService {
   }
 
   /**
-   * Extract metadata from NZB title
-   * Common patterns:
-   * - "Author - Title (Year) [Format]"
-   * - "Author - Title [Format]"
-   * - "Title (Year) [Format]"
-   * - "Title [Format]"
-   * - "[Series 01] - Title (retail) (azw3)"
-   * - "[Series 01] - Title (epub)"
+   * Extract metadata from NZB title using the unified parser.
+   * Supports multiple filename formats through strategy-based parsing.
    */
   private extractMetadata(title: string): { title: string; author: string; fileType: string } {
-    // Valid ebook file types
-    const validTypes = [
-      'epub', 'pdf', 'mobi', 'azw', 'azw3', 'azw4', 'kfx', 'prc', 'tpz', 'azw1',  // Kindle formats
-      'txt', 'rtf', 'doc', 'docx', 'html', 'htm',  // Document formats
-      'fb2', 'lit', 'pdb', 'ibooks', 'djvu',  // Other ebook formats
-      'cbr', 'cbz', 'cbt', 'cb7',  // Comic book formats
-      'chm', 'lrf', 'odt', 'opf'  // Additional formats
-    ];
-    
-    let author = 'Unknown';
-    let bookTitle = title;
-    let fileType = 'Unknown';
 
-    // Extract file type from brackets [EPUB], [PDF], etc.
-    const bracketTypeMatch = title.match(/\[([A-Z0-9]+)\]/i);
-    if (bracketTypeMatch) {
-      const potentialType = bracketTypeMatch[1].toLowerCase();
-      if (validTypes.includes(potentialType)) {
-        fileType = potentialType;
-        bookTitle = title.replace(/\[.*?\]/g, '').trim();
-      }
-    }
+    const parsed = FilenameParser.parse(title);
 
-    // Extract file type from parentheses (epub), (azw3), etc.
-    // Look for parentheses containing valid file types (ignoring things like years or "retail")
-    if (fileType === 'Unknown') {
-      const parenMatches = title.matchAll(/\(([^)]+)\)/g);
-      for (const match of parenMatches) {
-        const content = match[1].toLowerCase().trim();
-        if (validTypes.includes(content)) {
-          fileType = content;
-          // Remove all parentheses from title
-          bookTitle = title.replace(/\([^)]+\)/g, '').trim();
-          break;
-        }
-      }
-    }
-
-    // If still no type found, remove all brackets/parentheses for cleaner title
-    if (fileType === 'Unknown') {
-      bookTitle = title.replace(/[\[\(].*?[\]\)]/g, '').trim();
-    }
-
-    // Remove year in parentheses if still present
-    bookTitle = bookTitle.replace(/\(\d{4}\)/g, '').trim();
-
-    // Try to extract author from "Author - Title" pattern
-    const authorMatch = bookTitle.match(/^(.+?)\s*-\s*(.+)$/);
-    if (authorMatch) {
-      author = authorMatch[1].trim();
-      bookTitle = authorMatch[2].trim();
-    }
+    // Convert empty author to "Unknown" for NZB results (maintains backward compatibility)
+    const author = parsed.author || 'Unknown';
+    // Convert "unknown" file type to "Unknown" for consistency
+    const fileType = parsed.fileType === 'unknown' ? 'Unknown' : parsed.fileType;
 
     return {
-      title: bookTitle || title,
+      title: parsed.title,
       author,
       fileType
     };

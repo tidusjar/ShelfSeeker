@@ -1,3 +1,4 @@
+import { text } from 'stream/consumers';
 import { IrcClient } from '../../src/irc/client.js';
 import { DccHandler, DccDownloadResult } from '../../src/irc/dccHandler.js';
 import { SearchResultParser } from '../../src/parser/searchResultParser.js';
@@ -172,7 +173,7 @@ export class IrcService {
       throw new Error('No text file found in search results');
     }
 
-    console.log(`→ Parsing results from ${path.basename(textFilePath)}...`);
+    console.log(textFilePath);
     const cliResults: CliSearchResult[] = SearchResultParser.parse(textFilePath);
 
     // Convert CLI format to Web API format

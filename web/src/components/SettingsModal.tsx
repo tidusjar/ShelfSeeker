@@ -96,26 +96,35 @@ function SettingsModal({
     setSaveMessage(null);
 
     try {
-      const updatePayload: any = {};
-      if (activeTab === 'general') {
-        updatePayload.general = generalConfig;
-      } else if (activeTab === 'irc') {
-        updatePayload.irc = config;
-      }
+      let response;
 
-      const response = await api.updateConfig(updatePayload);
+      if (activeTab === 'general') {
+        response = await api.updateGeneralConfig(generalConfig);
+      } else if (activeTab === 'irc') {
+        response = await api.updateIrcConfig(config);
+      } else {
+        // NZB and Downloaders tabs handle their own saves
+        return;
+      }
 
       if (response.success && response.data) {
         setSaveMessage({
           type: 'success',
           text: response.data.message
         });
-        
-        // Update parent state
-        onSave({
-          irc: activeTab === 'irc' ? config : currentConfig?.irc || config,
-          general: activeTab === 'general' ? generalConfig : currentConfig?.general || generalConfig
-        });
+
+        // Update parent state with only the changed section
+        if (activeTab === 'irc') {
+          onSave({
+            irc: config,
+            general: currentConfig?.general || generalConfig
+          });
+        } else if (activeTab === 'general') {
+          onSave({
+            irc: currentConfig?.irc || config,
+            general: generalConfig
+          });
+        }
 
         // Close modal after a short delay
         setTimeout(() => {

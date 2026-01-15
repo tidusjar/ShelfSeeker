@@ -1,50 +1,48 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Layout from './Layout';
 import IrcSettings from './IrcSettings';
 import NewznabSettings from './NewznabSettings';
 import TorrentSettings from './TorrentSettings';
-import type { ConfigData, NzbProvider, ConnectionStatus } from '../types';
+import type { ConfigData, NzbProvider, ConnectionStatus, Downloader } from '../types';
 
 interface SettingsProps {
   onBack: () => void;
+  onNewSearch: (query: string) => void;
   config: ConfigData | null;
   connectionStatus: ConnectionStatus;
   nzbProviders: NzbProvider[];
+  usenetDownloader: Downloader | null;
   onConfigUpdate: () => void;
 }
 
 type SettingsView = 'irc' | 'newznab' | 'torrents';
 
-function Settings({ onBack, config, connectionStatus, nzbProviders, onConfigUpdate }: SettingsProps) {
+function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders, usenetDownloader, onConfigUpdate }: SettingsProps) {
   const [activeView, setActiveView] = useState<SettingsView>('irc');
+  const [query, setQuery] = useState('');
+
+  const handleSearch = (searchQuery: string) => {
+    if (searchQuery.trim()) {
+      onBack(); // Return to home/results
+      onNewSearch(searchQuery.trim()); // Trigger search
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-white flex flex-col font-display">
-      {/* Header */}
-      <header className="border-b border-solid border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
-            <span className="material-symbols-outlined">menu_book</span>
-          </div>
-          <h1 className="text-lg font-bold tracking-tight">ShelfSeeker</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="p-2 hover:bg-slate-100 dark:hover:bg-border-dark rounded-lg transition-colors">
-            <span className="material-symbols-outlined text-slate-600 dark:text-muted-dark">notifications</span>
-          </button>
-          <button className="p-2 hover:bg-slate-100 dark:hover:bg-border-dark rounded-lg transition-colors">
-            <span className="material-symbols-outlined text-slate-600 dark:text-muted-dark">settings</span>
-          </button>
-          <div className="h-8 w-px bg-slate-200 dark:bg-border-dark mx-1" />
-          <button className="flex items-center gap-2 pl-2 pr-1 py-1 hover:bg-slate-100 dark:hover:bg-border-dark rounded-lg transition-colors">
-            <span className="text-sm font-medium">Admin</span>
-            <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs border border-primary/30">
-              JD
-            </div>
-          </button>
-        </div>
-      </header>
-
+    <Layout
+      showSearch={true}
+      searchQuery={query}
+      onSearchChange={setQuery}
+      onSearchSubmit={handleSearch}
+      onSettingsClick={() => {}}
+      onLogoClick={onBack}
+      config={config}
+      connectionStatus={connectionStatus}
+      nzbProviders={nzbProviders}
+      usenetDownloader={usenetDownloader}
+      showFooter={true}
+    >
       <div className="flex flex-1">
         {/* Sidebar Navigation */}
         <aside className="w-64 border-r border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark flex flex-col p-4 shrink-0 hidden md:flex">
@@ -156,7 +154,7 @@ function Settings({ onBack, config, connectionStatus, nzbProviders, onConfigUpda
           </AnimatePresence>
         </main>
       </div>
-    </div>
+    </Layout>
   );
 }
 

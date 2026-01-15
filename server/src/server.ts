@@ -200,6 +200,7 @@ app.post('/api/nzb/providers/:id/test', async (req, res) => {
 app.get('/api/config', (req, res) => {
   try {
     const ircConfig = configService.getIrcConfig();
+    const generalConfig = configService.getGeneralConfig();
     // Return only user-editable fields
     const userConfig = {
       enabled: ircConfig.enabled,
@@ -208,56 +209,42 @@ app.get('/api/config', (req, res) => {
       channel: ircConfig.channel,
       searchCommand: ircConfig.searchCommand,
     };
-    res.json({ success: true, data: { irc: userConfig } });
+    res.json({ success: true, data: { irc: userConfig, general: generalConfig } });
   } catch (error) {
     res.json({ success: false, error: (error as Error).message });
   }
 });
 
-app.put('/api/config', async (req, res) => {
+// Update IRC configuration
+app.put('/api/config/irc', async (req, res) => {
   try {
-    const { irc, general } = req.body;
-    const allErrors: string[] = [];
+    const ircConfig = req.body;
 
-    // Validate and update general config if provided
-    if (general && typeof general === 'object') {
-      const generalErrors = configService.validateGeneralConfig(general);
-      if (generalErrors.length > 0) {
-        allErrors.push(...generalErrors.map(e => e.message));
-      } else {
-        await configService.updateGeneralConfig(general);
-      }
+    if (!ircConfig || typeof ircConfig !== 'object') {
+      return res.json({ success: false, error: 'Invalid IRC configuration' });
     }
 
-    // Validate and update IRC config if provided
-    if (irc && typeof irc === 'object') {
-      const ircErrors = configService.validateIrcConfig(irc);
-      if (ircErrors.length > 0) {
-        allErrors.push(...ircErrors.map(e => e.message));
-      } else {
-        await configService.updateIrcConfig(irc);
-      }
-    }
-
-    // Return validation errors if any
-    if (allErrors.length > 0) {
+    // Validate IRC config
+    const ircErrors = configService.validateIrcConfig(ircConfig);
+    if (ircErrors.length > 0) {
       return res.json({
         success: false,
-        error: allErrors.join(', ')
+        error: ircErrors.map(e => e.message).join(', ')
       });
     }
 
-    // Update IRC service and reconnect if IRC config was changed
+    // Update IRC config
+    await configService.updateIrcConfig(ircConfig);
+
+    // Update IRC service and reconnect
     let reconnected = true;
     let reconnectError = null;
-    if (irc) {
-      try {
-        await ircService.updateConfig(configService.getIrcConfig());
-      } catch (error) {
-        reconnected = false;
-        reconnectError = (error as Error).message;
-        console.error('Failed to reconnect with new config:', reconnectError);
-      }
+    try {
+      await ircService.updateConfig(configService.getIrcConfig());
+    } catch (error) {
+      reconnected = false;
+      reconnectError = (error as Error).message;
+      console.error('Failed to reconnect with new config:', reconnectError);
     }
 
     res.json({
@@ -265,8 +252,40 @@ app.put('/api/config', async (req, res) => {
       data: {
         reconnected,
         message: reconnected
-          ? 'Configuration updated successfully'
+          ? 'IRC configuration updated successfully'
           : `Configuration saved but failed to reconnect: ${reconnectError}`
+      }
+    });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Update general configuration
+app.put('/api/config/general', async (req, res) => {
+  try {
+    const generalConfig = req.body;
+
+    if (!generalConfig || typeof generalConfig !== 'object') {
+      return res.json({ success: false, error: 'Invalid general configuration' });
+    }
+
+    // Validate general config
+    const generalErrors = configService.validateGeneralConfig(generalConfig);
+    if (generalErrors.length > 0) {
+      return res.json({
+        success: false,
+        error: generalErrors.map(e => e.message).join(', ')
+      });
+    }
+
+    // Update general config
+    await configService.updateGeneralConfig(generalConfig);
+
+    res.json({
+      success: true,
+      data: {
+        message: 'General configuration updated successfully'
       }
     });
   } catch (error) {

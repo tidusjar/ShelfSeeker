@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
 import { SearchResult } from '../types.js';
+import { IRCFilenameParser } from './ircFilenameParser.js';
 
 /**
  * Parses search results from the IRC bot's text file.
@@ -90,34 +91,15 @@ export class SearchResultParser {
   }
 
   /**
-   * Extract title, author, and file type from filename
-   * Common patterns:
-   * - "Author - Title.ext"
-   * - "Title.ext"
-   * - "Author - Series - Book Number - Title.ext"
+   * Extract title, author, and file type from filename using the IRC parser.
+   * Optimized for human-readable IRC bot filenames.
    */
   private static extractMetadata(filename: string): { title: string; author: string; fileType: string } {
-    // Extract file extension
-    const lastDot = filename.lastIndexOf('.');
-    const fileType = lastDot > 0 ? filename.substring(lastDot + 1).toLowerCase() : 'unknown';
-    const nameWithoutExt = lastDot > 0 ? filename.substring(0, lastDot) : filename;
-
-    // Try to split by ' - ' to find author
-    const parts = nameWithoutExt.split(' - ');
-    let author = '';
-    let title = nameWithoutExt;
-
-    if (parts.length >= 2) {
-      // First part is likely the author
-      author = parts[0].trim();
-      // Rest is the title (rejoin in case there are multiple dashes)
-      title = parts.slice(1).join(' - ').trim();
-    }
-
+    const parsed = IRCFilenameParser.parse(filename);
     return {
-      title,
-      author,
-      fileType
+      title: parsed.title,
+      author: parsed.author,
+      fileType: parsed.fileType
     };
   }
 

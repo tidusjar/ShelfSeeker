@@ -49,8 +49,17 @@ export const api = {
     return response.json();
   },
 
-  async updateConfig(config: ConfigData): Promise<ApiResponse<ConfigUpdateResult>> {
-    const response = await fetch(`${API_BASE}/config`, {
+  async updateIrcConfig(config: ConfigData['irc']): Promise<ApiResponse<ConfigUpdateResult>> {
+    const response = await fetch(`${API_BASE}/config/irc`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+    return response.json();
+  },
+
+  async updateGeneralConfig(config: ConfigData['general']): Promise<ApiResponse<ConfigUpdateResult>> {
+    const response = await fetch(`${API_BASE}/config/general`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
