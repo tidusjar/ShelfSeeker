@@ -157,6 +157,22 @@ function App() {
     }
   };
 
+  const handleDirectNzbDownload = (result: SearchResult) => {
+    if (result.source !== 'nzb' || !result.nzbUrl) {
+      console.error('Invalid result for direct NZB download');
+      return;
+    }
+
+    // Create a temporary anchor element to trigger download
+    const link = document.createElement('a');
+    link.href = result.nzbUrl;
+    link.download = `${result.title}.nzb`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleBackToHome = () => {
     setView('home');
     setSearchResults([]);
@@ -205,6 +221,7 @@ function App() {
               searchQuery={searchQuery}
               onDownload={handleDownload}
               onSendToDownloader={handleSendToDownloader}
+              onDirectNzbDownload={handleDirectNzbDownload}
               onBackToHome={handleBackToHome}
               onNewSearch={handleSearch}
               onOpenSettings={handleOpenSettings}

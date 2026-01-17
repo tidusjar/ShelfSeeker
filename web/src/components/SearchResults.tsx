@@ -8,6 +8,7 @@ interface SearchResultsProps {
   searchQuery: string;
   onDownload: (result: SearchResult) => Promise<void>;
   onSendToDownloader: (result: SearchResult) => Promise<void>;
+  onDirectNzbDownload: (result: SearchResult) => void;
   onBackToHome: () => void;
   onNewSearch: (query: string) => void;
   onOpenSettings: () => void;
@@ -21,6 +22,8 @@ function SearchResults({
   results,
   searchQuery,
   onDownload,
+  onSendToDownloader,
+  onDirectNzbDownload,
   onBackToHome,
   onNewSearch,
   onOpenSettings,
@@ -352,15 +355,40 @@ function SearchResults({
                   </div>
                 </div>
                 <div className="mt-4 md:mt-0 w-full md:w-auto">
-                  <motion.button
-                    onClick={() => onDownload(result)}
-                    className="w-full md:w-auto px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <span className="material-symbols-outlined text-lg">download</span>
-                    Download
-                  </motion.button>
+                  {result.source === 'nzb' && usenetDownloader?.enabled ? (
+                    // NZB result with downloader enabled - show both buttons
+                    <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                      <motion.button
+                        onClick={() => onSendToDownloader(result)}
+                        className="flex-1 md:flex-initial px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <span className="material-symbols-outlined text-lg">send</span>
+                        Send to {usenetDownloader.name}
+                      </motion.button>
+                      <motion.button
+                        onClick={() => onDirectNzbDownload(result)}
+                        className="px-3 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center justify-center"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        title="Download NZB file"
+                      >
+                        <span className="material-symbols-outlined text-lg">download</span>
+                      </motion.button>
+                    </div>
+                  ) : (
+                    // IRC result or NZB without downloader - show single download button
+                    <motion.button
+                      onClick={() => result.source === 'irc' ? onDownload(result) : onDirectNzbDownload(result)}
+                      className="w-full md:w-auto px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span className="material-symbols-outlined text-lg">download</span>
+                      {result.source === 'nzb' ? 'Download NZB' : 'Download'}
+                    </motion.button>
+                  )}
                 </div>
               </motion.div>
             ))}

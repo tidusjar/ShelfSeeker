@@ -4,6 +4,7 @@ import Layout from './Layout';
 import IrcSettings from './IrcSettings';
 import NewznabSettings from './NewznabSettings';
 import TorrentSettings from './TorrentSettings';
+import DownloaderSettings from './DownloaderSettings';
 import type { ConfigData, NzbProvider, ConnectionStatus, Downloader } from '../types';
 
 interface SettingsProps {
@@ -16,7 +17,7 @@ interface SettingsProps {
   onConfigUpdate: () => void;
 }
 
-type SettingsView = 'irc' | 'newznab' | 'torrents';
+type SettingsView = 'irc' | 'newznab' | 'torrents' | 'downloaders';
 
 function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders, usenetDownloader, onConfigUpdate }: SettingsProps) {
   const [activeView, setActiveView] = useState<SettingsView>('irc');
@@ -87,6 +88,25 @@ function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders,
             </nav>
           </div>
 
+          <div className="mb-6">
+            <h2 className="px-3 text-xs font-semibold text-slate-400 dark:text-muted-dark uppercase tracking-wider mb-2">
+              Download Clients
+            </h2>
+            <nav className="space-y-1">
+              <button
+                onClick={() => setActiveView('downloaders')}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg w-full transition-colors ${
+                  activeView === 'downloaders'
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-slate-600 dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-border-dark'
+                }`}
+              >
+                <span className="material-symbols-outlined">download</span>
+                <span>Usenet</span>
+              </button>
+            </nav>
+          </div>
+
           <div className="mt-auto">
             <nav className="space-y-1">
               <button
@@ -149,6 +169,17 @@ function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders,
                 transition={{ duration: 0.2 }}
               >
                 <TorrentSettings />
+              </motion.div>
+            )}
+            {activeView === 'downloaders' && (
+              <motion.div
+                key="downloaders"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DownloaderSettings />
               </motion.div>
             )}
           </AnimatePresence>
