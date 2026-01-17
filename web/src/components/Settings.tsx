@@ -5,6 +5,7 @@ import IrcSettings from './IrcSettings';
 import NewznabSettings from './NewznabSettings';
 import TorrentSettings from './TorrentSettings';
 import DownloaderSettings from './DownloaderSettings';
+import AboutSettings from './AboutSettings';
 import type { ConfigData, NzbProvider, ConnectionStatus, Downloader } from '../types';
 
 interface SettingsProps {
@@ -17,7 +18,7 @@ interface SettingsProps {
   onConfigUpdate: () => void;
 }
 
-type SettingsView = 'irc' | 'newznab' | 'torrents' | 'downloaders';
+type SettingsView = 'irc' | 'newznab' | 'torrents' | 'downloaders' | 'about';
 
 function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders, usenetDownloader, onConfigUpdate }: SettingsProps) {
   const [activeView, setActiveView] = useState<SettingsView>('irc');
@@ -110,19 +111,22 @@ function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders,
           <div className="mt-auto">
             <nav className="space-y-1">
               <button
+                onClick={() => setActiveView('about')}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg w-full transition-colors ${
+                  activeView === 'about'
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-slate-600 dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-border-dark'
+                }`}
+              >
+                <span className="material-symbols-outlined">info</span>
+                <span>About</span>
+              </button>
+              <button
                 onClick={onBack}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg w-full text-slate-600 dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-border-dark transition-colors"
               >
                 <span className="material-symbols-outlined">arrow_back</span>
                 <span>Back to Search</span>
-              </button>
-              <button className="flex items-center gap-3 px-3 py-2 rounded-lg w-full text-slate-600 dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-border-dark transition-colors">
-                <span className="material-symbols-outlined">history</span>
-                <span>Search History</span>
-              </button>
-              <button className="flex items-center gap-3 px-3 py-2 rounded-lg w-full text-slate-600 dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-border-dark transition-colors">
-                <span className="material-symbols-outlined">help</span>
-                <span>Support</span>
               </button>
             </nav>
           </div>
@@ -180,6 +184,17 @@ function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders,
                 transition={{ duration: 0.2 }}
               >
                 <DownloaderSettings />
+              </motion.div>
+            )}
+            {activeView === 'about' && (
+              <motion.div
+                key="about"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <AboutSettings />
               </motion.div>
             )}
           </AnimatePresence>

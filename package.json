@@ -1,11 +1,13 @@
 {
   "name": "shelfseeker",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Multi-source ebook search and download web application",
   "type": "module",
   "scripts": {
     "dev": "echo 'Use: cd server && npm run dev' or 'cd web && npm run dev'",
-    "test": "echo 'Use: cd server && npm test' or 'cd web && npm test'"
+    "test": "echo 'Use: cd server && npm test' or 'cd web && npm test'",
+    "release": "standard-version && npm run sync-version",
+    "sync-version": "node scripts/sync-version.js"
   },
   "keywords": [
     "irc",
@@ -13,5 +15,8 @@
     "web"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "standard-version": "^9.5.0"
+  }
 }

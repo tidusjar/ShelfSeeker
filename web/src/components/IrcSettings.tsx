@@ -9,7 +9,7 @@ interface IrcSettingsProps {
   onConfigUpdate: () => void;
 }
 
-function IrcSettings({ config, connectionStatus, onConfigUpdate }: IrcSettingsProps) {
+function IrcSettings({ config, onConfigUpdate }: IrcSettingsProps) {
   const [ircConfig, setIrcConfig] = useState<IrcConfig>({
     enabled: false,
     server: '',

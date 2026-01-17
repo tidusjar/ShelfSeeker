@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import { IrcService } from './ircService.js';
 import { ConfigService } from './configService.js';
 import { NzbService } from './nzbService.js';
@@ -34,7 +35,39 @@ const searchService = new SearchService(ircService, nzbService, configService);
 // Downloader Service - handles sending NZBs to downloaders
 const downloaderService = new DownloaderService();
 
+// Load version from package.json
+let version = '1.0.0';
+try {
+  const packagePath = path.join(__dirname, '..', '..', 'package.json');
+  const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
+  version = packageJson.version;
+} catch (error) {
+  console.error('Failed to load version from package.json:', error);
+}
+
 // Routes
+
+// System information endpoint
+app.get('/api/system/info', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        version,
+        name: 'ShelfSeeker',
+        description: 'Multi-source ebook search and download application',
+        githubUrl: 'https://github.com/tidusjar/ShelfSeeker',
+        donationUrl: 'https://www.paypal.com/paypalme/PlexRequestsNet',
+        license: 'MIT',
+        platform: process.platform,
+        nodeVersion: process.version,
+        uptime: process.uptime(),
+      }
+    });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
 app.post('/api/connect', async (req, res) => {
   try {
     // Only connect if IRC is enabled

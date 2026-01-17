@@ -6,7 +6,8 @@ import type {
   ConfigData,
   ConfigUpdateResult,
   NzbProvider,
-  Downloader
+  Downloader,
+  SystemInfo
 } from './types';
 
 const API_BASE = '/api';
@@ -179,6 +180,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nzbUrl, title }),
     });
+    return response.json();
+  },
+
+  // System Information
+  async getSystemInfo(): Promise<ApiResponse<SystemInfo>> {
+    const response = await fetch(`${API_BASE}/system/info`);
     return response.json();
   },
 

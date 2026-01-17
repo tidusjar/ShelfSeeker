@@ -84,12 +84,21 @@ docker-compose restart        # Restart
 - [Settings & Configuration](SETTINGS_GUIDE.md)
 - [Building from Source](BUILD.md)
 - [API Documentation](server/README.md)
+- [Versioning & Releases](VERSIONING.md)
+- [Release Process](RELEASE_PROCESS.md)
 
 ---
 
 ## 🤝 Contributing
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) first.
+
+We use [Conventional Commits](https://www.conventionalcommits.org/) for version management:
+```bash
+git commit -m "feat: add new feature"      # Minor version bump
+git commit -m "fix: resolve bug"           # Patch version bump
+git commit -m "feat!: breaking change"     # Major version bump
+```
 
 ---
 

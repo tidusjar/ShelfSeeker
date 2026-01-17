@@ -1,0 +1,15 @@
+{
+  "types": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "chore", "hidden": true },
+    { "type": "docs", "hidden": true },
+    { "type": "style", "hidden": true },
+    { "type": "refactor", "section": "Refactoring" },
+    { "type": "perf", "section": "Performance Improvements" },
+    { "type": "test", "hidden": true }
+  ],
+  "commitUrlFormat": "https://github.com/tidusjar/ShelfSeeker/commit/{{hash}}",
+  "compareUrlFormat": "https://github.com/tidusjar/ShelfSeeker/compare/{{previousTag}}...{{currentTag}}",
+  "issueUrlFormat": "https://github.com/tidusjar/ShelfSeeker/issues/{{id}}"
+}

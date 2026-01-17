@@ -87,3 +87,15 @@ export interface Downloader {
   category?: string;
   priority?: number;
 }
+
+export interface SystemInfo {
+  version: string;
+  name: string;
+  description: string;
+  githubUrl: string;
+  donationUrl: string;
+  license: string;
+  platform: string;
+  nodeVersion: string;
+  uptime: number;
+}
