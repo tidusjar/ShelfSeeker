@@ -5,7 +5,8 @@ FROM node:20-alpine AS base
 FROM base AS web-builder
 WORKDIR /app/web
 COPY web/package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 COPY web/ ./
 RUN npm run build
 
@@ -13,7 +14,8 @@ RUN npm run build
 FROM base AS server-builder
 WORKDIR /app/server
 COPY server/package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 COPY server/tsconfig.json ./
 COPY server/src/ ./src/
 RUN npm run build
@@ -24,7 +26,8 @@ WORKDIR /app/server
 
 # Install production dependencies for server
 COPY server/package*.json ./
-RUN npm ci --production
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --production
 
 # Copy built server files
 COPY --from=server-builder /app/server/dist ./dist
