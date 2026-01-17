@@ -65,10 +65,15 @@ The workflow runs through several jobs in sequence:
 ### 1. Check Release Job (automatic on push to main)
 - Checks if there are any releasable commits since the last tag
 - Looks for commits starting with: `feat:`, `fix:`, `perf:`
-- If found, signals that a release should be created
+- If found, signals that a release should be created after tests pass
 - If only `docs:`, `chore:`, etc., skips release creation
 
-### 2. Create Release Job (runs if releasable commits found OR manually triggered)
+### 2. Build and Test Job
+- Runs tests for web and server components
+- Ensures everything builds successfully
+- **Must pass before a release is created**
+
+### 3. Create Release Job (runs ONLY if tests pass AND releasable commits found)
 - Checks out the code with full git history
 - Installs dependencies
 - Runs `standard-version` to:
@@ -77,12 +82,7 @@ The workflow runs through several jobs in sequence:
   - Update CHANGELOG.md with changes
   - Create a git commit and tag
 - Pushes changes and tags to GitHub
-
-### 3. Build and Test Job
-- Checks out the code (using the new tag if a release was created)
-- Runs tests for web and server components
-- Ensures everything builds successfully
-- Must pass before proceeding to Docker build
+- **Only runs if build-and-test succeeds**
 
 ### 4. Docker Build and Push Job (on main branch or tags only)
 - Builds multi-platform Docker images (amd64, arm64, arm/v7)
@@ -203,17 +203,19 @@ No additional secrets are needed!
 graph TD
     A[Developer: git commit -m 'feat: new feature'] --> B[Developer: git push origin main]
     B --> C{Check: Releasable commits?}
-    C -->|Yes feat/fix/perf| D[Auto-create release & tag]
-    C -->|No docs/chore/etc| E[Skip release, just build]
-    D --> F[Run tests]
-    E --> F
-    F --> G{Tests pass?}
-    G -->|Yes| H[Build & push Docker images]
-    G -->|No| I[Workflow fails ❌]
-    H --> J{Was release created?}
-    J -->|Yes| K[Create GitHub Release]
-    J -->|No| L[Build complete ✓]
-    K --> M[Release complete! 🎉]
+    C -->|Yes feat/fix/perf| D[Run tests first]
+    C -->|No docs/chore/etc| D
+    D --> E{Tests pass?}
+    E -->|No| F[Workflow fails ❌ - No release created]
+    E -->|Yes| G{Should release?}
+    G -->|Yes| H[Create release & tag]
+    G -->|No| I[Skip release]
+    H --> J[Build & push Docker images]
+    I --> J
+    J --> K{Was release created?}
+    K -->|Yes| L[Create GitHub Release]
+    K -->|No| M[Build complete ✓]
+    L --> N[Release complete! 🎉]
 ```
 
 ### Real Example:
@@ -234,11 +236,13 @@ git push origin main
 
 **What happens:**
 1. ✅ Workflow detects `fix:` and `feat:` commits
-2. ✅ Auto-creates release v1.1.0 (minor bump for feat)
-3. ✅ CHANGELOG.md updated with both fix and feat
-4. ✅ Tests run
+2. ✅ Runs all tests (web + server)
+3. ✅ Tests pass → Auto-creates release v1.1.0 (minor bump for feat)
+4. ✅ CHANGELOG.md updated with both fix and feat
 5. ✅ Docker images built: `1.1.0`, `1.1`, `1`, `latest`
 6. ✅ GitHub release created with notes
+
+**If tests had failed:** No release would be created, no tags pushed, workflow fails safely.
 
 ## 🎓 Best Practices
 
