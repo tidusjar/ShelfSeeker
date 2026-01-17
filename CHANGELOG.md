@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.3](https://github.com/tidusjar/ShelfSeeker/compare/v0.1.2...v0.1.3) (2026-01-17)
+
+
+### Bug Fixes
+
+* publish to dockerhub and improve build ([854a6f0](https://github.com/tidusjar/ShelfSeeker/commit/854a6f05e9acac774e077ff2c05dd70d051e2fd0))
+
 ### [0.1.2](https://github.com/tidusjar/ShelfSeeker/compare/v0.1.1...v0.1.2) (2026-01-17)
 
 
