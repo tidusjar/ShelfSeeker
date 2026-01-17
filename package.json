@@ -1,35 +1,17 @@
 {
   "name": "shelfseeker",
   "version": "1.0.0",
-  "description": "Multi-source ebook search and download tool",
-  "main": "dist/index.js",
+  "description": "Multi-source ebook search and download web application",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run"
+    "dev": "echo 'Use: cd server && npm run dev' or 'cd web && npm run dev'",
+    "test": "echo 'Use: cd server && npm test' or 'cd web && npm test'"
   },
   "keywords": [
     "irc",
     "ebook",
-    "cli"
+    "web"
   ],
   "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "adm-zip": "^0.5.10",
-    "irc-framework": "^4.13.1",
-    "prompts": "^2.4.2"
-  },
-  "devDependencies": {
-    "@types/node": "^20.10.6",
-    "@types/prompts": "^2.4.9",
-    "@vitest/ui": "^4.0.16",
-    "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
-    "vitest": "^4.0.16"
-  }
+  "license": "MIT"
 }

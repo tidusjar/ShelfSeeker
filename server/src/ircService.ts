@@ -1,8 +1,8 @@
 import { text } from 'stream/consumers';
-import { IrcClient } from '../../src/irc/client.js';
-import { DccHandler, DccDownloadResult } from '../../src/irc/dccHandler.js';
-import { SearchResultParser } from '../../src/parser/searchResultParser.js';
-import type { SearchResult as CliSearchResult } from '../../src/types.js';
+import { IrcClient } from './lib/irc/client.js';
+import { DccHandler, DccDownloadResult } from './lib/irc/dccHandler.js';
+import { SearchResultParser } from './lib/parser/searchResultParser.js';
+import type { SearchResult as CliSearchResult } from './lib/types.js';
 import type { IrcConfig } from './configService.js';
 import path from 'path';
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { SearchResult as CliSearchResult } from '../../src/types.js';
+import type { SearchResult as CliSearchResult } from './lib/types.js';
 import type { SearchResult } from './ircService.js';
 
 describe('IRC Service - Search Result Mapping', () => {

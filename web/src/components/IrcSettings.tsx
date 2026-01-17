@@ -11,11 +11,11 @@ interface IrcSettingsProps {
 
 function IrcSettings({ config, connectionStatus, onConfigUpdate }: IrcSettingsProps) {
   const [ircConfig, setIrcConfig] = useState<IrcConfig>({
-    enabled: true,
+    enabled: false,
     server: '',
     port: 6667,
     channel: '',
-    searchCommand: '@search'
+    searchCommand: ''
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -30,22 +30,25 @@ function IrcSettings({ config, connectionStatus, onConfigUpdate }: IrcSettingsPr
   const validateConfig = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!ircConfig.server.trim()) {
-      newErrors.server = 'Server address cannot be empty';
-    }
+    // Only validate if IRC is enabled
+    if (ircConfig.enabled) {
+      if (!ircConfig.server.trim()) {
+        newErrors.server = 'Server address cannot be empty';
+      }
 
-    if (ircConfig.port < 1 || ircConfig.port > 65535) {
-      newErrors.port = 'Port must be between 1 and 65535';
-    }
+      if (ircConfig.port < 1 || ircConfig.port > 65535) {
+        newErrors.port = 'Port must be between 1 and 65535';
+      }
 
-    if (!ircConfig.channel.trim()) {
-      newErrors.channel = 'Channel cannot be empty';
-    } else if (!ircConfig.channel.startsWith('#')) {
-      newErrors.channel = 'Channel must start with #';
-    }
+      if (!ircConfig.channel.trim()) {
+        newErrors.channel = 'Channel cannot be empty';
+      } else if (!ircConfig.channel.startsWith('#')) {
+        newErrors.channel = 'Channel must start with #';
+      }
 
-    if (!ircConfig.searchCommand.trim()) {
-      newErrors.searchCommand = 'Search command cannot be empty';
+      if (!ircConfig.searchCommand.trim()) {
+        newErrors.searchCommand = 'Search command cannot be empty';
+      }
     }
 
     setErrors(newErrors);
@@ -127,25 +130,57 @@ function IrcSettings({ config, connectionStatus, onConfigUpdate }: IrcSettingsPr
   };
 
   const handleTestConnection = async () => {
+    // Validate config first
+    if (!validateConfig()) {
+      setSaveMessage({
+        type: 'error',
+        text: 'Please fix validation errors before testing'
+      });
+      setTimeout(() => setSaveMessage(null), 3000);
+      return;
+    }
+
     setSaveMessage({
       type: 'success',
       text: 'Testing connection...'
     });
 
-    setTimeout(() => {
-      if (connectionStatus === 'connected') {
+    try {
+      // Save the config first to ensure server has latest settings
+      const saveResponse = await api.updateIrcConfig(ircConfig);
+
+      if (!saveResponse.success) {
+        setSaveMessage({
+          type: 'error',
+          text: saveResponse.error || 'Failed to save configuration'
+        });
+        setTimeout(() => setSaveMessage(null), 3000);
+        return;
+      }
+
+      // Now test the connection
+      const response = await api.connect();
+
+      if (response.success) {
         setSaveMessage({
           type: 'success',
           text: 'Connection successful!'
         });
+        onConfigUpdate(); // Refresh status
       } else {
         setSaveMessage({
           type: 'error',
-          text: 'Connection failed. Please check your settings.'
+          text: response.error || 'Connection failed. Please check your settings.'
         });
       }
-      setTimeout(() => setSaveMessage(null), 3000);
-    }, 1000);
+    } catch (error) {
+      setSaveMessage({
+        type: 'error',
+        text: 'Network error: Failed to connect to server'
+      });
+    }
+
+    setTimeout(() => setSaveMessage(null), 3000);
   };
 
   return (
@@ -199,14 +234,14 @@ function IrcSettings({ config, connectionStatus, onConfigUpdate }: IrcSettingsPr
                   <input
                     className={`w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-background-dark border ${
                       errors.server ? 'border-red-500' : 'border-slate-200 dark:border-border-dark'
-                    } rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none`}
+                    } rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
                     id="server"
                     name="server"
-                    placeholder="irc.irchighway.net"
+                    placeholder="e.g., irc.irchighway.net"
                     type="text"
                     value={ircConfig.server}
                     onChange={(e) => setIrcConfig({ ...ircConfig, server: e.target.value })}
-                    disabled={isSaving}
+                    disabled={!ircConfig.enabled || isSaving}
                   />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-muted-dark">
@@ -227,14 +262,14 @@ function IrcSettings({ config, connectionStatus, onConfigUpdate }: IrcSettingsPr
                   <input
                     className={`w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-background-dark border ${
                       errors.port ? 'border-red-500' : 'border-slate-200 dark:border-border-dark'
-                    } rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none`}
+                    } rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
                     id="port"
                     name="port"
                     placeholder="6667"
                     type="number"
                     value={ircConfig.port}
                     onChange={(e) => setIrcConfig({ ...ircConfig, port: parseInt(e.target.value) || 0 })}
-                    disabled={isSaving}
+                    disabled={!ircConfig.enabled || isSaving}
                   />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-muted-dark">
@@ -257,14 +292,14 @@ function IrcSettings({ config, connectionStatus, onConfigUpdate }: IrcSettingsPr
                   <input
                     className={`w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-background-dark border ${
                       errors.channel ? 'border-red-500' : 'border-slate-200 dark:border-border-dark'
-                    } rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none`}
+                    } rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
                     id="channel"
                     name="channel"
-                    placeholder="#ebooks"
+                    placeholder="e.g., #ebooks"
                     type="text"
                     value={ircConfig.channel}
                     onChange={(e) => setIrcConfig({ ...ircConfig, channel: e.target.value })}
-                    disabled={isSaving}
+                    disabled={!ircConfig.enabled || isSaving}
                   />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-muted-dark">
@@ -285,14 +320,14 @@ function IrcSettings({ config, connectionStatus, onConfigUpdate }: IrcSettingsPr
                   <input
                     className={`w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-background-dark border ${
                       errors.searchCommand ? 'border-red-500' : 'border-slate-200 dark:border-border-dark'
-                    } rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none`}
+                    } rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
                     id="command"
                     name="command"
-                    placeholder="@search"
+                    placeholder="e.g., @search"
                     type="text"
                     value={ircConfig.searchCommand}
                     onChange={(e) => setIrcConfig({ ...ircConfig, searchCommand: e.target.value })}
-                    disabled={isSaving}
+                    disabled={!ircConfig.enabled || isSaving}
                   />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-muted-dark">

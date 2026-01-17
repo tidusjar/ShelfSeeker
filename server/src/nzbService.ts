@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { NzbProvider, NzbSearchResult, NzbApiResponse, NzbSearchItem } from './types.js';
-import { NZBFilenameParser } from '../../src/parser/nzbFilenameParser.js';
+import { NZBFilenameParser } from './lib/parser/nzbFilenameParser.js';
 
 export class NzbService {
   private xmlParser: XMLParser;

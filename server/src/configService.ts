@@ -58,11 +58,11 @@ const DEFAULT_CONFIG: AppConfig = {
   },
   sources: {
     irc: {
-      enabled: true,
-      server: 'irc.irchighway.net',
+      enabled: false,
+      server: '',
       port: 6667,
-      channel: '#ebooks',
-      searchCommand: '@search',
+      channel: '',
+      searchCommand: '',
       connectionTimeout: 30000,
       searchTimeout: 30000,
       downloadTimeout: 300000,
