@@ -237,8 +237,8 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
 
-      - name: Build and push Docker image by digest
-        id: build
+      - name: Build and push to GHCR by digest
+        id: build-ghcr
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -248,17 +248,37 @@ jobs:
           cache-from: type=gha,scope=build-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
 
-      - name: Export digest
-        run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+      - name: Build and push to Docker Hub by digest
+        id: build-dockerhub
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/shelfseeker,push-by-digest=true,name-canonical=true,push=true
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=build-${{ matrix.platform }}
 
-      - name: Upload digest
+      - name: Export digests
+        run: |
+          mkdir -p /tmp/digests-ghcr /tmp/digests-dockerhub
+          digest_ghcr="${{ steps.build-ghcr.outputs.digest }}"
+          digest_dockerhub="${{ steps.build-dockerhub.outputs.digest }}"
+          touch "/tmp/digests-ghcr/${digest_ghcr#sha256:}"
+          touch "/tmp/digests-dockerhub/${digest_dockerhub#sha256:}"
+
+      - name: Upload GHCR digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ strategy.job-index }}
-          path: /tmp/digests/*
+          name: digests-ghcr-${{ strategy.job-index }}
+          path: /tmp/digests-ghcr/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload Docker Hub digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-dockerhub-${{ strategy.job-index }}
+          path: /tmp/digests-dockerhub/*
           if-no-files-found: error
           retention-days: 1
 
@@ -278,11 +298,18 @@ jobs:
         id: image
         run: echo "name=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Download digests
+      - name: Download GHCR digests
         uses: actions/download-artifact@v4
         with:
-          path: /tmp/digests
-          pattern: digests-*
+          path: /tmp/digests-ghcr
+          pattern: digests-ghcr-*
+          merge-multiple: true
+
+      - name: Download Docker Hub digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests-dockerhub
+          pattern: digests-dockerhub-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -316,17 +343,17 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
 
-      - name: Create manifest list and push
-        working-directory: /tmp/digests
+      - name: Create manifest list and push to GHCR
+        working-directory: /tmp/digests-ghcr
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+          docker buildx imagetools create $(jq -cr '.tags | map(select(startswith("ghcr.io")) | "-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY }}/${{ steps.image.outputs.name }}@sha256:%s ' *)
 
       - name: Create manifest list and push to Docker Hub
-        working-directory: /tmp/digests
+        working-directory: /tmp/digests-dockerhub
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map(sub("^ghcr.io/.+/"; "${{ secrets.DOCKERHUB_USERNAME }}/") | "-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY }}/${{ steps.image.outputs.name }}@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '.tags | map(select(startswith("docker.io") or startswith("${{ secrets.DOCKERHUB_USERNAME }}")) | "-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'docker.io/${{ secrets.DOCKERHUB_USERNAME }}/shelfseeker@sha256:%s ' *)
 
       - name: Inspect image
         run: |
