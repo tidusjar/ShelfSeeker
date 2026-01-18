@@ -469,9 +469,9 @@ app.post('/api/downloaders/send', async (req, res) => {
 
 // Serve static files from web frontend (in production)
 if (process.env.NODE_ENV === 'production') {
-  // __dirname is /app/server/dist/server/src when compiled
+  // __dirname is /app/server/dist when compiled
   // public folder is at /app/server/public
-  const publicPath = path.join(__dirname, '..', '..', '..', 'public');
+  const publicPath = path.join(__dirname, '..', 'public');
   app.use(express.static(publicPath));
   
   // Serve index.html for all non-API routes (SPA fallback)

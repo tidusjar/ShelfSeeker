@@ -35,6 +35,9 @@ COPY --from=server-builder /app/server/dist ./dist
 # Copy built web frontend to be served by Express
 COPY --from=web-builder /app/web/dist ./public
 
+# Copy root package.json for version info
+COPY package.json /app/package.json
+
 # Create runtime directories
 RUN mkdir -p downloads .tmp data
 
