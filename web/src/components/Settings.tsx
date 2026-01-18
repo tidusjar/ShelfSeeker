@@ -60,6 +60,7 @@ function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders,
                     ? 'bg-primary/10 text-primary font-medium'
                     : 'text-slate-600 dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-border-dark'
                 }`}
+                data-testid="settings-nav-irc"
               >
                 <span className="material-symbols-outlined">chat</span>
                 <span>IRC</span>
@@ -71,6 +72,7 @@ function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders,
                     ? 'bg-primary/10 text-primary font-medium'
                     : 'text-slate-600 dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-border-dark'
                 }`}
+                data-testid="settings-nav-newznab"
               >
                 <span className="material-symbols-outlined">cloud</span>
                 <span>Newznab</span>
@@ -82,6 +84,7 @@ function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders,
                     ? 'bg-primary/10 text-primary font-medium'
                     : 'text-slate-600 dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-border-dark'
                 }`}
+                data-testid="settings-nav-torrents"
               >
                 <span className="material-symbols-outlined">nest_cam_magnet_mount</span>
                 <span>Torrents</span>
@@ -124,6 +127,7 @@ function Settings({ onBack, onNewSearch, config, connectionStatus, nzbProviders,
               <button
                 onClick={onBack}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg w-full text-slate-600 dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-border-dark transition-colors"
+                data-testid="settings-back-button"
               >
                 <span className="material-symbols-outlined">arrow_back</span>
                 <span>Back to Search</span>

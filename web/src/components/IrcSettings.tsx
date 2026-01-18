@@ -209,6 +209,7 @@ function IrcSettings({ config, onConfigUpdate }: IrcSettingsProps) {
             className="sr-only peer"
             checked={ircConfig.enabled}
             onChange={(e) => setIrcConfig({ ...ircConfig, enabled: e.target.checked })}
+            data-testid="irc-enabled-toggle"
           />
           <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-border-dark peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
         </label>
@@ -242,6 +243,7 @@ function IrcSettings({ config, onConfigUpdate }: IrcSettingsProps) {
                     value={ircConfig.server}
                     onChange={(e) => setIrcConfig({ ...ircConfig, server: e.target.value })}
                     disabled={!ircConfig.enabled || isSaving}
+                    data-testid="irc-server-input"
                   />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-muted-dark">
@@ -270,6 +272,7 @@ function IrcSettings({ config, onConfigUpdate }: IrcSettingsProps) {
                     value={ircConfig.port}
                     onChange={(e) => setIrcConfig({ ...ircConfig, port: parseInt(e.target.value) || 0 })}
                     disabled={!ircConfig.enabled || isSaving}
+                    data-testid="irc-port-input"
                   />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-muted-dark">
@@ -300,6 +303,7 @@ function IrcSettings({ config, onConfigUpdate }: IrcSettingsProps) {
                     value={ircConfig.channel}
                     onChange={(e) => setIrcConfig({ ...ircConfig, channel: e.target.value })}
                     disabled={!ircConfig.enabled || isSaving}
+                    data-testid="irc-channel-input"
                   />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-muted-dark">
@@ -328,6 +332,7 @@ function IrcSettings({ config, onConfigUpdate }: IrcSettingsProps) {
                     value={ircConfig.searchCommand}
                     onChange={(e) => setIrcConfig({ ...ircConfig, searchCommand: e.target.value })}
                     disabled={!ircConfig.enabled || isSaving}
+                    data-testid="irc-command-input"
                   />
                 </div>
                 <p className="text-xs text-slate-400 dark:text-muted-dark">
@@ -347,6 +352,7 @@ function IrcSettings({ config, onConfigUpdate }: IrcSettingsProps) {
                 }`}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
+                data-testid={`irc-save-message-${saveMessage.type}`}
               >
                 {saveMessage.text}
               </motion.div>
@@ -358,6 +364,7 @@ function IrcSettings({ config, onConfigUpdate }: IrcSettingsProps) {
                 type="submit"
                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold py-2.5 px-6 rounded-lg transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isSaving}
+                data-testid="irc-save-button"
               >
                 <span className="material-symbols-outlined text-sm">save</span>
                 {isSaving ? 'Saving...' : 'Save Changes'}

@@ -47,17 +47,18 @@ function DownloadPanel({ download }: DownloadPanelProps) {
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      data-testid="download-panel"
     >
       <div className="download-content">
         <div className="download-header">
-          <div className="download-status" style={{ color: getStatusColor() }}>
+          <div className="download-status" style={{ color: getStatusColor() }} data-testid="download-status">
             <span className="status-icon">{getStatusIcon()}</span>
             <span className="status-text">{getStatusText()}</span>
           </div>
           <div className="download-speed">{download.speed}</div>
         </div>
 
-        <div className="download-filename">{download.filename}</div>
+        <div className="download-filename" data-testid="download-filename">{download.filename}</div>
 
         <div className="download-progress-container">
           <motion.div

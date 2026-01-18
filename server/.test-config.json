@@ -1,0 +1,24 @@
+{
+  "irc": {
+    "server": "localhost",
+    "port": 60671,
+    "channel": "#ebooks",
+    "enabled": true
+  },
+  "nzb": {
+    "providers": [
+      {
+        "id": "test-provider",
+        "name": "Test NZB Provider",
+        "url": "http://localhost:60672",
+        "apiKey": "test-api-key",
+        "enabled": true,
+        "categories": [
+          7000,
+          8010
+        ],
+        "priority": 1
+      }
+    ]
+  }
+}
