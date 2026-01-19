@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Layout from './Layout';
+import { api } from '../api';
 import type { SearchResult, ConfigData, ConnectionStatus, NzbProvider, Downloader } from '../types';
 
 interface SearchResultsProps {
@@ -38,6 +39,9 @@ function SearchResults({
   const [authorFilter, setAuthorFilter] = useState<Set<string>>(new Set());
   const [sourceProviderFilter, setSourceProviderFilter] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
+  const [enrichedResults, setEnrichedResults] = useState<SearchResult[]>(results);
+  const enrichmentInProgress = useRef<Set<number>>(new Set());
+  const enrichedPages = useRef(new Set<number>());
   const resultsPerPage = 10;
 
   // Sync query state with searchQuery prop
@@ -45,40 +49,47 @@ function SearchResults({
     setQuery(searchQuery);
   }, [searchQuery]);
 
+  // Sync enrichedResults when results prop changes and reset enrichment tracking
+  useEffect(() => {
+    setEnrichedResults(results);
+    enrichedPages.current.clear();
+    enrichmentInProgress.current.clear();
+  }, [results]);
+
   // Extract unique file types from results
   const availableFileTypes = useMemo(() => {
     const types = new Set<string>();
-    results.forEach(result => {
+    enrichedResults.forEach(result => {
       types.add(result.fileType.toUpperCase());
     });
     return Array.from(types).sort();
-  }, [results]);
+  }, [enrichedResults]);
 
   // Extract unique authors from results
   const availableAuthors = useMemo(() => {
     const authors = new Set<string>();
-    results.forEach(result => {
+    enrichedResults.forEach(result => {
       if (result.author && result.author.trim()) {
         authors.add(result.author);
       }
     });
     return Array.from(authors).sort();
-  }, [results]);
+  }, [enrichedResults]);
 
   // Extract unique source providers from results
   const availableSourceProviders = useMemo(() => {
     const providers = new Set<string>();
-    results.forEach(result => {
+    enrichedResults.forEach(result => {
       if (result.sourceProvider) {
         providers.add(result.sourceProvider);
       }
     });
     return Array.from(providers).sort();
-  }, [results]);
+  }, [enrichedResults]);
 
   // Check if results contain each source type
-  const hasIrcResults = results.some(r => r.source === 'irc');
-  const hasNzbResults = results.some(r => r.source === 'nzb');
+  const hasIrcResults = enrichedResults.some(r => r.source === 'irc');
+  const hasNzbResults = enrichedResults.some(r => r.source === 'nzb');
 
   const toggleFileType = (type: string) => {
     const newSet = new Set(fileTypeFilter);
@@ -111,7 +122,7 @@ function SearchResults({
   };
 
   const filteredResults = useMemo(() => {
-    let filtered = results;
+    let filtered = enrichedResults;
 
     // File type filter
     if (fileTypeFilter.size > 0) {
@@ -138,11 +149,83 @@ function SearchResults({
     }
 
     return filtered;
-  }, [results, fileTypeFilter, authorFilter, sourceProviderFilter, sourceFilter]);
+  }, [enrichedResults, fileTypeFilter, authorFilter, sourceProviderFilter, sourceFilter]);
 
   const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
   const paginatedResults = filteredResults.slice(startIndex, startIndex + resultsPerPage);
+
+  // Enrich current page results on mount and when page changes
+  useEffect(() => {
+    const abortController = new AbortController();
+    
+    const enrichCurrentPage = async () => {
+      // Skip if already enriching this page or this page was already enriched
+      if (enrichmentInProgress.current.has(currentPage) || enrichedPages.current.has(currentPage)) {
+        console.log(`[Enrichment] Skipping page ${currentPage} - already in progress or completed`);
+        return;
+      }
+
+      // Check if any results on this page need enrichment
+      const needsEnrichment = paginatedResults.some(r => !r.metadata);
+
+      if (!needsEnrichment || paginatedResults.length === 0) {
+        // Mark as enriched even if no enrichment needed
+        enrichedPages.current.add(currentPage);
+        return;
+      }
+
+      // Mark as in progress
+      enrichmentInProgress.current.add(currentPage);
+      console.log(`[Enrichment] Starting enrichment for page ${currentPage} (${paginatedResults.length} results)`);
+
+      try {
+        // Call enrichment API for current page only
+        const response = await api.enrichResults(paginatedResults);
+
+        // Check if this request was aborted
+        if (abortController.signal.aborted) {
+          console.log(`[Enrichment] Aborted for page ${currentPage}`);
+          return;
+        }
+
+        if (response.success && response.data) {
+          console.log(`[Enrichment] Completed for page ${currentPage}`);
+          
+          // Merge enriched results back into full results array
+          setEnrichedResults(prevResults => {
+            const newResults = [...prevResults];
+            response.data!.forEach((enrichedResult, idx) => {
+              const originalIndex = prevResults.findIndex(
+                r => r.bookNumber === paginatedResults[idx].bookNumber
+              );
+              if (originalIndex !== -1) {
+                newResults[originalIndex] = enrichedResult;
+              }
+            });
+            return newResults;
+          });
+
+          // Mark this page as enriched
+          enrichedPages.current.add(currentPage);
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          console.error('[Enrichment] Failed to enrich results:', error);
+        }
+      } finally {
+        enrichmentInProgress.current.delete(currentPage);
+      }
+    };
+
+    enrichCurrentPage();
+
+    // Cleanup: abort request if component unmounts or effect re-runs
+    return () => {
+      abortController.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   const formatFileSize = (size: string) => size;
 
@@ -329,7 +412,19 @@ function SearchResults({
               >
                 <div className="flex gap-5 items-start">
                   <div className="w-16 h-24 shrink-0 bg-slate-200 dark:bg-[#232f48] rounded-lg overflow-hidden shadow-sm flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-400 text-4xl">book</span>
+                    {result.metadata?.coverUrl ? (
+                      <img 
+                        src={result.metadata.coverUrl} 
+                        alt={result.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to icon if image fails to load
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <span className={`material-symbols-outlined text-slate-400 text-4xl ${result.metadata?.coverUrl ? 'hidden' : ''}`}>book</span>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <h3 className="text-slate-900 dark:text-white text-lg font-bold group-hover:text-primary transition-colors" data-testid="result-title">
@@ -337,6 +432,11 @@ function SearchResults({
                     </h3>
                     {result.author && (
                       <p className="text-slate-500 dark:text-slate-400 font-medium text-sm" data-testid="result-author">by {result.author}</p>
+                    )}
+                    {result.metadata?.description && (
+                      <p className="text-slate-600 dark:text-slate-500 text-xs line-clamp-2 mt-1">
+                        {result.metadata.description}
+                      </p>
                     )}
                     <div className="flex flex-wrap items-center gap-3 mt-2">
                       <span className={`px-2 py-0.5 rounded text-xs font-bold border ${getFileTypeColor(result.fileType)}`} data-testid="result-filetype">
@@ -352,6 +452,18 @@ function SearchResults({
                         </span>
                         {result.sourceProvider}
                       </span>
+                      {result.metadata?.publishDate && (
+                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">calendar_month</span>
+                          {result.metadata.publishDate}
+                        </span>
+                      )}
+                      {result.metadata?.averageRating && (
+                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">star</span>
+                          {result.metadata.averageRating.toFixed(1)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

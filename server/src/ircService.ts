@@ -4,6 +4,7 @@ import { DccHandler, DccDownloadResult } from './lib/irc/dccHandler.js';
 import { SearchResultParser } from './lib/parser/searchResultParser.js';
 import type { SearchResult as CliSearchResult } from './lib/types.js';
 import type { IrcConfig } from './configService.js';
+import { enrichSearchResults } from './lib/metadata/enrichmentService.js';
 import path from 'path';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
@@ -22,6 +23,7 @@ export interface SearchResult {
   filename: string;
   nzbUrl?: string;           // NZB only
   guid?: string;             // NZB only
+  metadata?: import('./lib/types.js').BookMetadata;  // Optional enriched metadata
 }
 
 export class IrcService {
@@ -143,14 +145,14 @@ export class IrcService {
     await this.ircClient.connect();
   }
 
-  async search(query: string): Promise<SearchResult[]> {
+  async search(query: string, enrich: boolean = false): Promise<SearchResult[]> {
     if (this.status !== 'connected') {
       throw new Error('Not connected to IRC');
     }
 
-    console.log(`→ Searching for: "${query}"`);
+    console.log(`→ Search: ${query}`);
 
-    // Send search command
+    // Send search command to IRC
     this.ircClient.search(query);
 
     // Wait for DCC transfer of search results
@@ -176,8 +178,11 @@ export class IrcService {
     console.log(textFilePath);
     const cliResults: CliSearchResult[] = SearchResultParser.parse(textFilePath);
 
+    // Conditionally enrich results with metadata from Open Library
+    const resultsToMap = enrich ? await enrichSearchResults(cliResults) : cliResults;
+
     // Convert CLI format to Web API format
-    const webResults: SearchResult[] = cliResults.map((r, index) => ({
+    const webResults: SearchResult[] = resultsToMap.map((r, index) => ({
       source: 'irc' as const,
       sourceProvider: r.botCommand.replace('!', ''),
       botName: r.botCommand.replace('!', ''),
@@ -187,7 +192,8 @@ export class IrcService {
       fileType: r.fileType,
       size: r.filesize,
       command: r.rawCommand,
-      filename: r.filename
+      filename: r.filename,
+      metadata: r.metadata  // Pass through enriched metadata (if enriched)
     }));
 
     console.log(`✓ Found ${webResults.length} results`);

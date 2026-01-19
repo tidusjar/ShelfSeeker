@@ -3,6 +3,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { NzbProvider, NzbSearchResult, NzbApiResponse, NzbSearchItem } from './types.js';
 import { NZBFilenameParser } from './lib/parser/nzbFilenameParser.js';
+import { enrichSearchResults } from './lib/metadata/enrichmentService.js';
 
 export class NzbService {
   private xmlParser: XMLParser;
@@ -21,7 +22,7 @@ export class NzbService {
   /**
    * Search all enabled NZB providers in parallel
    */
-  async search(query: string, providers: NzbProvider[]): Promise<NzbSearchResult[]> {
+  async search(query: string, providers: NzbProvider[], enrich: boolean = false): Promise<NzbSearchResult[]> {
     const enabledProviders = providers.filter(p => p.enabled);
 
     if (enabledProviders.length === 0) {
@@ -37,7 +38,33 @@ export class NzbService {
     );
 
     const results = await Promise.all(searchPromises);
-    return results.flat(); // Flatten array of arrays
+    const flatResults = results.flat(); // Flatten array of arrays
+
+    // Conditionally enrich results with metadata from Open Library
+    if (!enrich) {
+      return flatResults;
+    }
+
+    // Convert to enrichable format, enrich, then convert back
+    const enrichableResults = flatResults.map(r => ({
+      botCommand: '',
+      filename: r.filename,
+      filesize: r.size,
+      rawCommand: '',
+      title: r.title,
+      author: r.author,
+      fileType: r.fileType
+    }));
+
+    const enrichedResults = await enrichSearchResults(enrichableResults);
+
+    // Merge metadata back into NZB results
+    const enrichedNzbResults = flatResults.map((result, index) => ({
+      ...result,
+      metadata: enrichedResults[index].metadata
+    }));
+
+    return enrichedNzbResults;
   }
 
   /**

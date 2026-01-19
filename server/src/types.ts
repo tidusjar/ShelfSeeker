@@ -39,6 +39,7 @@ export interface NzbSearchResult {
   filename: string;              // Extracted from title
   nzbUrl: string;                // For download
   guid: string;                  // Unique identifier
+  metadata?: import('./lib/types.js').BookMetadata;  // Optional enriched metadata
 }
 
 // Downloader Types

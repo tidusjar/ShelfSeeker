@@ -1,0 +1,140 @@
+.book-metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-secondary, #666);
+}
+
+/* Rating stars */
+.book-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.star {
+  display: inline-block;
+}
+
+.star-full {
+  color: #fbbf24;
+}
+
+.star-half {
+  color: #fbbf24;
+  opacity: 0.6;
+}
+
+.star-empty {
+  color: #d1d5db;
+}
+
+.rating-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+.rating-count {
+  font-weight: 400;
+  color: var(--text-secondary, #666);
+  font-size: 13px;
+}
+
+/* Publish info */
+.book-publish-info {
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+}
+
+/* Description */
+.book-description {
+  margin-top: 4px;
+}
+
+.book-description p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary, #555);
+}
+
+.description-toggle {
+  background: none;
+  border: none;
+  color: var(--primary-color, #667eea);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0 0 0;
+  margin: 0;
+  text-decoration: underline;
+  transition: opacity 0.2s;
+}
+
+.description-toggle:hover {
+  opacity: 0.8;
+}
+
+.description-toggle:focus {
+  outline: 2px solid var(--primary-color, #667eea);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Subject tags */
+.book-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.subject-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: var(--tag-bg, #e5e7eb);
+  color: var(--tag-text, #374151);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .book-metadata {
+    font-size: 13px;
+  }
+
+  .stars {
+    font-size: 14px;
+  }
+
+  .rating-text {
+    font-size: 13px;
+  }
+
+  .rating-count {
+    font-size: 12px;
+  }
+
+  .book-description p {
+    font-size: 12px;
+  }
+
+  .subject-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+}

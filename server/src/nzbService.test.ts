@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NzbService } from './nzbService.js';
 import { NzbProvider } from './types.js';
 import * as fs from 'fs/promises';
+import * as path from 'path';
 
 // Mock modules
 vi.mock('fs/promises');
@@ -441,7 +442,7 @@ describe('NzbService', () => {
       expect(filename).toBe('Test Book.nzb');
       expect(fs.mkdir).toHaveBeenCalledWith('/test/downloads', { recursive: true });
       expect(fs.writeFile).toHaveBeenCalledWith(
-        '/test/downloads/Test Book.nzb',
+        path.join('/test/downloads', 'Test Book.nzb'),
         mockNzbContent,
         'utf-8'
       );
