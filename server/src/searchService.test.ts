@@ -87,13 +87,14 @@ describe('SearchService', () => {
 
   describe('search', () => {
     it('should search both IRC and NZB when both are enabled', async () => {
-      const results = await searchService.search('test query');
+      const { results, errors } = await searchService.search('test query');
 
       expect(mockIrcService.search).toHaveBeenCalledWith('test query', false);
       expect(mockNzbService.search).toHaveBeenCalledWith('test query', [
         expect.objectContaining({ id: 'provider-1' })
       ], false);
       expect(results).toHaveLength(2);
+      expect(errors).toEqual([]);
     });
 
     it('should renumber results sequentially starting from 1', async () => {
@@ -107,7 +108,7 @@ describe('SearchService', () => {
         createMockNzbResult({ bookNumber: 0 })
       ]);
 
-      const results = await searchService.search('test');
+      const { results } = await searchService.search('test');
 
       expect(results).toHaveLength(4);
       expect(results[0].bookNumber).toBe(1);
@@ -119,7 +120,7 @@ describe('SearchService', () => {
     it('should search only IRC when IRC is enabled and NZB is disabled', async () => {
       mockConfigService.getNzbProviders.mockReturnValue([]);
 
-      const results = await searchService.search('test query');
+      const { results } = await searchService.search('test query');
 
       expect(mockIrcService.search).toHaveBeenCalled();
       expect(mockNzbService.search).not.toHaveBeenCalled();
@@ -130,7 +131,7 @@ describe('SearchService', () => {
     it('should search only NZB when IRC is disabled', async () => {
       mockConfigService.getIrcConfig.mockReturnValue({ enabled: false });
 
-      const results = await searchService.search('test query');
+      const { results } = await searchService.search('test query');
 
       expect(mockIrcService.search).not.toHaveBeenCalled();
       expect(mockNzbService.search).toHaveBeenCalled();
@@ -141,7 +142,7 @@ describe('SearchService', () => {
     it('should search only NZB when IRC is not connected', async () => {
       mockIrcService.getStatus.mockReturnValue('disconnected');
 
-      const results = await searchService.search('test query');
+      const { results } = await searchService.search('test query');
 
       expect(mockIrcService.search).not.toHaveBeenCalled();
       expect(mockNzbService.search).toHaveBeenCalled();
@@ -172,28 +173,31 @@ describe('SearchService', () => {
     it('should handle IRC search failure gracefully and return NZB results', async () => {
       mockIrcService.search.mockRejectedValue(new Error('IRC search failed'));
 
-      const results = await searchService.search('test');
+      const { results, errors } = await searchService.search('test');
 
       expect(results).toHaveLength(1);
       expect(results[0].source).toBe('nzb');
+      expect(errors).toEqual(['IRC: IRC search failed']);
     });
 
     it('should handle NZB search failure gracefully and return IRC results', async () => {
       mockNzbService.search.mockRejectedValue(new Error('NZB search failed'));
 
-      const results = await searchService.search('test');
+      const { results, errors } = await searchService.search('test');
 
       expect(results).toHaveLength(1);
       expect(results[0].source).toBe('irc');
+      expect(errors).toEqual(['NZB: NZB search failed']);
     });
 
     it('should return empty array when both searches fail', async () => {
       mockIrcService.search.mockRejectedValue(new Error('IRC failed'));
       mockNzbService.search.mockRejectedValue(new Error('NZB failed'));
 
-      const results = await searchService.search('test');
+      const { results, errors } = await searchService.search('test');
 
       expect(results).toEqual([]);
+      expect(errors).toEqual(['IRC: IRC failed', 'NZB: NZB failed']);
     });
 
     it('should combine results from multiple NZB providers', async () => {
@@ -207,7 +211,7 @@ describe('SearchService', () => {
         createMockNzbResult({ providerId: 'p2' })
       ]);
 
-      const results = await searchService.search('test');
+      const { results } = await searchService.search('test');
 
       expect(mockNzbService.search).toHaveBeenCalledWith('test', [
         expect.objectContaining({ id: 'p1' }),
@@ -233,7 +237,7 @@ describe('SearchService', () => {
         new Error('Failed to increment')
       );
 
-      const results = await searchService.search('test');
+      const { results } = await searchService.search('test');
 
       expect(results).toHaveLength(2); // Still returns results
     });
@@ -241,7 +245,7 @@ describe('SearchService', () => {
     it('should handle empty results from IRC', async () => {
       mockIrcService.search.mockResolvedValue([]);
 
-      const results = await searchService.search('test');
+      const { results } = await searchService.search('test');
 
       expect(results).toHaveLength(1);
       expect(results[0].source).toBe('nzb');
@@ -250,7 +254,7 @@ describe('SearchService', () => {
     it('should handle empty results from NZB', async () => {
       mockNzbService.search.mockResolvedValue([]);
 
-      const results = await searchService.search('test');
+      const { results } = await searchService.search('test');
 
       expect(results).toHaveLength(1);
       expect(results[0].source).toBe('irc');
@@ -293,7 +297,7 @@ describe('SearchService', () => {
         return [createMockNzbResult()];
       });
 
-      const results = await searchService.search('test');
+      const { results } = await searchService.search('test');
 
       expect(ircStarted).toBe(true);
       expect(nzbStarted).toBe(true);
@@ -312,7 +316,7 @@ describe('SearchService', () => {
         })
       ]);
 
-      const results = await searchService.search('test');
+      const { results } = await searchService.search('test');
 
       expect(results[0]).toMatchObject({
         bookNumber: 1,
@@ -334,7 +338,7 @@ describe('SearchService', () => {
       mockIrcService.search.mockResolvedValue(ircResults);
       mockNzbService.search.mockResolvedValue(nzbResults);
 
-      const results = await searchService.search('test');
+      const { results } = await searchService.search('test');
 
       expect(results).toHaveLength(100);
       expect(results[0].bookNumber).toBe(1);

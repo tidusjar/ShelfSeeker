@@ -1,4 +1,6 @@
 import { BookMetadata } from '../types.js';
+import { TIMEOUTS } from '../../constants.js';
+import { logger } from '../logger.js';
 
 /**
  * Open Library API Service
@@ -10,8 +12,6 @@ import { BookMetadata } from '../types.js';
 const OPEN_LIBRARY_SEARCH_URL = 'https://openlibrary.org/search.json';
 const OPEN_LIBRARY_BOOKS_URL = 'https://openlibrary.org/api/books';
 const OPEN_LIBRARY_COVERS_URL = 'https://covers.openlibrary.org/b';
-
-const DEFAULT_TIMEOUT = 10000; // 10 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // Start with 1 second
 
@@ -36,11 +36,11 @@ export async function searchByTitleAuthor(
     params.append('limit', '1'); // We only need the first result
 
     const url = `${OPEN_LIBRARY_SEARCH_URL}?${params.toString()}`;
-    console.log(url);
+    logger.info(url);
     const response = await fetchWithRetry(url);
     
     if (!response.ok) {
-      console.warn(`Open Library API returned ${response.status} for query: ${title}`);
+      logger.warn('Open Library API error', { status: response.status, query: title });
       return null;
     }
 
@@ -53,7 +53,7 @@ export async function searchByTitleAuthor(
     const book = data.docs[0];
     return parseSearchResult(book);
   } catch (error) {
-    console.error('Error fetching from Open Library:', error);
+    logger.error('Error fetching from Open Library:', error);
     return null;
   }
 }
@@ -79,7 +79,7 @@ export async function searchByISBN(isbn: string): Promise<BookMetadata | null> {
     const response = await fetchWithRetry(url);
     
     if (!response.ok) {
-      console.warn(`Open Library API returned ${response.status} for ISBN: ${isbn}`);
+      logger.warn('Open Library API error for ISBN', { status: response.status, isbn });
       return null;
     }
 
@@ -91,7 +91,7 @@ export async function searchByISBN(isbn: string): Promise<BookMetadata | null> {
 
     return parseBookData(data[bibkey]);
   } catch (error) {
-    console.error('Error fetching from Open Library by ISBN:', error);
+    logger.error('Error fetching from Open Library by ISBN:', error);
     return null;
   }
 }
@@ -233,7 +233,7 @@ async function fetchWithRetry(
   retries = MAX_RETRIES
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+  const timeout = setTimeout(() => controller.abort(), TIMEOUTS.API_REQUEST);
 
   try {
     const response = await fetch(url, {
@@ -250,7 +250,7 @@ async function fetchWithRetry(
 
     // If we have retries left and it's a network error, retry
     if (retries > 0 && (error instanceof Error && error.name === 'AbortError')) {
-      console.log(`Request timed out, retrying... (${retries} attempts left)`);
+      logger.info('Request timed out, retrying...', { retriesLeft: retries });
       await sleep(RETRY_DELAY * (MAX_RETRIES - retries + 1)); // Exponential backoff
       return fetchWithRetry(url, retries - 1);
     }

@@ -1,4 +1,3 @@
-import { text } from 'stream/consumers';
 import { IrcClient } from './lib/irc/client.js';
 import { DccHandler, DccDownloadResult } from './lib/irc/dccHandler.js';
 import { SearchResultParser } from './lib/parser/searchResultParser.js';
@@ -6,6 +5,9 @@ import type { SearchResult as CliSearchResult } from './lib/types.js';
 import type { IrcConfig } from './configService.js';
 import { enrichSearchResults } from './lib/metadata/enrichmentService.js';
 import path from 'path';
+import { logger } from './lib/logger.js';
+import { TIMEOUTS } from './constants.js';
+import { randomUUID } from 'crypto';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
 
@@ -34,11 +36,14 @@ export class IrcService {
   private downloadDir: string;
   private tempDir: string;
   private configService?: any;
-  private pendingTransfer: {
+  private requestQueue: Map<string, {
     type: 'search' | 'download';
     resolve: (result: DccDownloadResult | null) => void;
-    timeout?: NodeJS.Timeout;
-  } | null = null;
+    reject: (error: Error) => void;
+    timeout: NodeJS.Timeout;
+    timestamp: number;
+  }> = new Map();
+  private isProcessing: boolean = false;
 
   constructor(config: IrcConfig, downloadDir?: string, configService?: any) {
     this.config = config;
@@ -60,73 +65,109 @@ export class IrcService {
     // Auto-connect only if enabled
     if (config.enabled) {
       this.connect().catch((error) => {
-        console.error('✗ Failed to auto-connect to IRC:', error.message);
+        logger.error('Failed to auto-connect to IRC', { error: error.message });
       });
     } else {
-      console.log('ℹ IRC is disabled, skipping auto-connect');
+      logger.info('IRC is disabled, skipping auto-connect');
     }
   }
 
   private setupEventHandlers(): void {
     this.ircClient.on('connected', () => {
-      console.log('✓ IRC registered');
+      logger.info('IRC registered');
     });
 
     this.ircClient.on('joined', (channel: string) => {
-      console.log(`✓ Joined ${channel}`);
+      logger.info(`Joined ${channel}`);
       this.status = 'connected';
     });
 
     this.ircClient.on('error', (error: Error) => {
-      console.error('✗ IRC error:', error.message);
+      logger.error('IRC error', { error: error.message });
       this.status = 'disconnected';
     });
 
     this.ircClient.on('disconnected', () => {
-      console.log('✗ Disconnected from IRC');
+      logger.info('Disconnected from IRC');
       this.status = 'disconnected';
     });
 
     this.ircClient.on('dcc_complete', (result: DccDownloadResult) => {
-      if (this.pendingTransfer) {
-        if (this.pendingTransfer.timeout) {
-          clearTimeout(this.pendingTransfer.timeout);
+      // Find oldest request in queue using timestamp
+      let oldestRequest: string | null = null;
+      let oldestTimestamp = Infinity;
+      
+      Array.from(this.requestQueue.entries()).forEach(([requestId, request]) => {
+        if (request.timestamp < oldestTimestamp) {
+          oldestTimestamp = request.timestamp;
+          oldestRequest = requestId;
         }
-        this.pendingTransfer.resolve(result);
-        this.pendingTransfer = null;
+      });
+
+      if (oldestRequest) {
+        const request = this.requestQueue.get(oldestRequest)!;
+        clearTimeout(request.timeout);
+        request.resolve(result);
+        this.requestQueue.delete(oldestRequest);
+        logger.info(`DCC transfer complete: ${result.filename}`, { requestId: oldestRequest });
       }
     });
 
     this.ircClient.on('dcc_error', (error: Error) => {
-      console.error('✗ DCC error:', error.message);
-      if (this.pendingTransfer) {
-        if (this.pendingTransfer.timeout) {
-          clearTimeout(this.pendingTransfer.timeout);
+      logger.error('DCC error', { error: error.message });
+      
+      // Find oldest request in queue using timestamp
+      let oldestRequest: string | null = null;
+      let oldestTimestamp = Infinity;
+      
+      Array.from(this.requestQueue.entries()).forEach(([requestId, request]) => {
+        if (request.timestamp < oldestTimestamp) {
+          oldestTimestamp = request.timestamp;
+          oldestRequest = requestId;
         }
-        this.pendingTransfer.resolve(null);
-        this.pendingTransfer = null;
+      });
+
+      if (oldestRequest) {
+        const request = this.requestQueue.get(oldestRequest)!;
+        clearTimeout(request.timeout);
+        request.resolve(null);
+        this.requestQueue.delete(oldestRequest);
       }
     });
   }
 
-  private waitForTransfer(
+  private async queueRequest(
     type: 'search' | 'download',
     timeout: number
   ): Promise<DccDownloadResult | null> {
-    return new Promise((resolve) => {
+    // Wait if another request is being processed
+    while (this.isProcessing) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    this.isProcessing = true;
+    const requestId = randomUUID();
+
+    return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        if (this.pendingTransfer) {
-          console.log(`✗ ${type} timeout`);
-          this.pendingTransfer.resolve(null);
-          this.pendingTransfer = null;
+        const request = this.requestQueue.get(requestId);
+        if (request) {
+          logger.info(`${type} timeout`, { requestId });
+          this.requestQueue.delete(requestId);
+          resolve(null);
         }
       }, timeout);
 
-      this.pendingTransfer = {
+      this.requestQueue.set(requestId, {
         type,
-        resolve,
-        timeout: timeoutId
-      };
+        resolve: (result) => {
+          this.isProcessing = false;
+          resolve(result);
+        },
+        reject,
+        timeout: timeoutId,
+        timestamp: Date.now()
+      });
     });
   }
 
@@ -140,7 +181,7 @@ export class IrcService {
     }
 
     this.status = 'connecting';
-    console.log(`→ Connecting to ${this.config.server}...`);
+    logger.info(`Connecting to ${this.config.server}...`);
 
     await this.ircClient.connect();
   }
@@ -150,13 +191,13 @@ export class IrcService {
       throw new Error('Not connected to IRC');
     }
 
-    console.log(`→ Search: ${query}`);
+    logger.info(`Search: ${query}`);
 
     // Send search command to IRC
     this.ircClient.search(query);
 
     // Wait for DCC transfer of search results
-    const result = await this.waitForTransfer('search', this.config.searchTimeout);
+    const result = await this.queueRequest('search', TIMEOUTS.IRC_SEARCH);
 
     if (!result) {
       throw new Error('Search timeout - no results received');
@@ -175,7 +216,7 @@ export class IrcService {
       throw new Error('No text file found in search results');
     }
 
-    console.log(textFilePath);
+    logger.info(`Parsing search results from ${textFilePath}`);
     const cliResults: CliSearchResult[] = SearchResultParser.parse(textFilePath);
 
     // Conditionally enrich results with metadata from Open Library
@@ -196,7 +237,7 @@ export class IrcService {
       metadata: r.metadata  // Pass through enriched metadata (if enriched)
     }));
 
-    console.log(`✓ Found ${webResults.length} results`);
+    logger.info(`Found ${webResults.length} results`);
     return webResults;
   }
 
@@ -205,7 +246,7 @@ export class IrcService {
       throw new Error('Not connected to IRC');
     }
 
-    console.log(`→ Download: ${command}`);
+    logger.info(`Download: ${command}`);
 
     // Get current download path from config if available
     let downloadPath = this.downloadDir;
@@ -214,20 +255,21 @@ export class IrcService {
       downloadPath = generalConfig.downloadPath || this.downloadDir;
     }
 
-    // Create new DCC handler with current download path
-    const dccHandler = new DccHandler(downloadPath, this.tempDir);
+    // Update existing DCC handler with current download path
+    this.dccHandler = new DccHandler(downloadPath, this.tempDir);
+    this.ircClient.updateDccHandler(this.dccHandler);
 
     // Send download command
     this.ircClient.download(command);
 
     // Wait for DCC transfer
-    const result = await this.waitForTransfer('download', this.config.downloadTimeout);
+    const result = await this.queueRequest('download', TIMEOUTS.IRC_DOWNLOAD);
 
     if (!result) {
       throw new Error('Download timeout');
     }
 
-    console.log(`✓ Downloaded: ${result.filename}`);
+    logger.info(`Downloaded: ${result.filename}`);
     return result.filename;
   }
 
@@ -237,8 +279,20 @@ export class IrcService {
   }
 
   async updateConfig(newConfig: IrcConfig): Promise<void> {
+    // Remove all listeners from old client to prevent memory leaks
+    this.ircClient.removeAllListeners();
+    
     // Disconnect from current server
     this.disconnect();
+
+    // Clear and reject all pending requests in queue
+    Array.from(this.requestQueue.entries()).forEach(([requestId, request]) => {
+      clearTimeout(request.timeout);
+      request.reject(new Error('IRC configuration updated, request cancelled'));
+      logger.info(`Cancelled pending request during config update`, { requestId, type: request.type });
+    });
+    this.requestQueue.clear();
+    this.isProcessing = false;
 
     // Update config
     this.config = newConfig;
@@ -263,7 +317,7 @@ export class IrcService {
     if (newConfig.enabled) {
       await this.connect();
     } else {
-      console.log('ℹ IRC is disabled, not reconnecting');
+      logger.info('IRC is disabled, not reconnecting');
     }
   }
 

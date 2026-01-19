@@ -79,18 +79,21 @@ describe('Server API Endpoints', () => {
     };
 
     mockSearchService = {
-      search: vi.fn().mockResolvedValue([
-        {
-          source: 'irc',
-          botName: 'TestBot',
-          bookNumber: 1,
-          title: 'Test Book',
-          author: 'Test Author',
-          fileType: 'epub',
-          size: '1.5 MB',
-          filename: 'Test_Book.epub',
-        },
-      ]),
+      search: vi.fn().mockResolvedValue({
+        results: [
+          {
+            source: 'irc',
+            botName: 'TestBot',
+            bookNumber: 1,
+            title: 'Test Book',
+            author: 'Test Author',
+            fileType: 'epub',
+            size: '1.5 MB',
+            filename: 'Test_Book.epub',
+          },
+        ],
+        errors: [],
+      }),
     };
 
     mockDownloaderService = {
@@ -164,8 +167,8 @@ describe('Server API Endpoints', () => {
         if (!query || typeof query !== 'string') {
           return res.json({ success: false, error: 'Invalid query' });
         }
-        const results = await searchService.search(query);
-        res.json({ success: true, data: results });
+        const { results, errors } = await searchService.search(query);
+        res.json({ success: true, data: results, errors });
       } catch (error) {
         res.json({ success: false, error: (error as Error).message });
       }

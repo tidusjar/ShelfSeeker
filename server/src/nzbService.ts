@@ -4,6 +4,8 @@ import { join } from 'path';
 import { NzbProvider, NzbSearchResult, NzbApiResponse, NzbSearchItem } from './types.js';
 import { NZBFilenameParser } from './lib/parser/nzbFilenameParser.js';
 import { enrichSearchResults } from './lib/metadata/enrichmentService.js';
+import { TIMEOUTS } from './constants.js';
+import { logger } from './lib/logger.js';
 
 export class NzbService {
   private xmlParser: XMLParser;
@@ -32,7 +34,7 @@ export class NzbService {
     // Search all providers in parallel, catching errors gracefully
     const searchPromises = enabledProviders.map(provider =>
       this.searchProvider(query, provider).catch(error => {
-        console.error(`[NzbService] Provider ${provider.name} failed:`, error.message);
+        logger.error('[NzbService] Provider failed', { provider: provider.name, error: error.message });
         return []; // Return empty array on failure
       })
     );
@@ -81,11 +83,11 @@ export class NzbService {
     searchUrl.searchParams.set('extended', '1');
     searchUrl.searchParams.set('limit', '100');
 
-    console.log(`[NzbService] Testing provider ${provider.name}: ${searchUrl.toString().replace(provider.apiKey, '***')}`);
+    logger.info('[NzbService] Testing provider', { provider: provider.name, url: searchUrl.toString().replace(provider.apiKey, '***') });
 
     // Create abort controller for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.API_REQUEST);
 
     try {
       const response = await fetch(searchUrl.toString(), {
@@ -97,7 +99,7 @@ export class NzbService {
 
       clearTimeout(timeoutId);
 
-      console.log(`[NzbService] Provider ${provider.name} responded with status: ${response.status}`);
+      logger.info('[NzbService] Provider responded', { provider: provider.name, status: response.status });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -106,14 +108,14 @@ export class NzbService {
       const xmlText = await response.text();
       const apiResponse = this.parseXml(xmlText);
 
-      console.log(`[NzbService] Provider ${provider.name} returned ${apiResponse.items.length} items`);
+      logger.info('[NzbService] Provider returned items', { provider: provider.name, count: apiResponse.items.length });
 
       // Convert items to search results
       const results = apiResponse.items
         .map(item => this.convertToSearchResult(item, provider.name, provider.id))
         .filter((result): result is NzbSearchResult => result !== null);
 
-      console.log(`[NzbService] Provider ${provider.name} converted ${results.length} valid search results`);
+      logger.info('[NzbService] Provider converted valid search results', { provider: provider.name, count: results.length });
 
       return results;
 
@@ -121,7 +123,7 @@ export class NzbService {
       clearTimeout(timeoutId);
 
       if (error.name === 'AbortError') {
-        throw new Error('Request timeout after 10 seconds');
+        throw new Error(`Request timeout after ${TIMEOUTS.API_REQUEST / 1000} seconds`);
       }
       throw error;
     }
@@ -187,7 +189,7 @@ export class NzbService {
         pubDate: item.pubDate?.toString() || ''
       };
     } catch (error) {
-      console.error('[NzbService] Failed to parse item:', error);
+      logger.error('[NzbService] Failed to parse item:', error);
       return null;
     }
   }
@@ -218,7 +220,7 @@ export class NzbService {
         guid: item.guid
       };
     } catch (error) {
-      console.error('[NzbService] Failed to convert item:', error);
+      logger.error('[NzbService] Failed to convert item:', error);
       return null;
     }
   }
