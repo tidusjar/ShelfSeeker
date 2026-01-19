@@ -311,7 +311,7 @@ function SearchResults({
         {/* Main Results Area */}
         <section className="flex-1">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-            <h2 className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight">
+            <h2 className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight" data-testid="results-count">
               Found {filteredResults.length} results for '{searchQuery}'
             </h2>
           </div>
@@ -325,27 +325,28 @@ function SearchResults({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
+                data-testid="search-result-card"
               >
                 <div className="flex gap-5 items-start">
                   <div className="w-16 h-24 shrink-0 bg-slate-200 dark:bg-[#232f48] rounded-lg overflow-hidden shadow-sm flex items-center justify-center">
                     <span className="material-symbols-outlined text-slate-400 text-4xl">book</span>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <h3 className="text-slate-900 dark:text-white text-lg font-bold group-hover:text-primary transition-colors">
+                    <h3 className="text-slate-900 dark:text-white text-lg font-bold group-hover:text-primary transition-colors" data-testid="result-title">
                       {result.title}
                     </h3>
                     {result.author && (
-                      <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">by {result.author}</p>
+                      <p className="text-slate-500 dark:text-slate-400 font-medium text-sm" data-testid="result-author">by {result.author}</p>
                     )}
                     <div className="flex flex-wrap items-center gap-3 mt-2">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold border ${getFileTypeColor(result.fileType)}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold border ${getFileTypeColor(result.fileType)}`} data-testid="result-filetype">
                         {result.fileType.toUpperCase()}
                       </span>
-                      <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1">
+                      <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1" data-testid="result-size">
                         <span className="material-symbols-outlined text-sm">attachment</span>
                         {formatFileSize(result.size)}
                       </span>
-                      <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1">
+                      <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1" data-testid="result-source">
                         <span className="material-symbols-outlined text-sm">
                           {result.source === 'irc' ? 'terminal' : 'database'}
                         </span>
@@ -384,6 +385,7 @@ function SearchResults({
                       className="w-full md:w-auto px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/20"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
+                      data-testid="result-download-button"
                     >
                       <span className="material-symbols-outlined text-lg">download</span>
                       {result.source === 'nzb' ? 'Download NZB' : 'Download'}

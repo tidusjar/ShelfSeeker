@@ -13,7 +13,7 @@ function Footer({ connectionStatus, config, nzbProviders, usenetDownloader }: Fo
       <div className="mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-6">
           {/* IRC Status */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" data-testid="footer-irc-status">
             <span className={`h-2 w-2 rounded-full ${
               connectionStatus === 'connected' ? 'bg-emerald-500' :
               connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :

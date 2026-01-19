@@ -342,6 +342,7 @@ function NewznabSettings({ nzbProviders, onConfigUpdate }: NewznabSettingsProps)
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
+          data-testid={`nzb-feedback-${feedback.type}`}
           className={`mb-6 p-4 rounded-lg border flex items-center gap-3 ${
             feedback.type === 'success'
               ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'

@@ -5,19 +5,19 @@ on:
     branches:
       - main
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   pull_request:
     branches:
       - main
   workflow_dispatch:
     inputs:
       release-type:
-        description: 'Create a release (leave empty to skip, or choose: auto/patch/minor/major)'
+        description: "Create a release (leave empty to skip, or choose: auto/patch/minor/major)"
         required: false
-        default: ''
+        default: ""
         type: choice
         options:
-          - ''
+          - ""
           - auto
           - patch
           - minor
@@ -33,6 +33,8 @@ env:
 permissions:
   contents: write
   packages: write
+  checks: write
+  pull-requests: write
 
 jobs:
   check-release:
@@ -87,8 +89,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: ${{ matrix.component }}/package-lock.json
 
       - name: Install web dependencies
@@ -121,11 +123,90 @@ jobs:
         working-directory: ./server
         run: npm run test:run
 
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: [check-release]
+    if: always() && (needs.check-release.result == 'success' || needs.check-release.result == 'skipped')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: |
+            web/package-lock.json
+            server/package-lock.json
+            e2e/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: ./web
+        run: npm ci
+
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Install e2e dependencies
+        working-directory: ./e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ./e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Build web
+        working-directory: ./web
+        run: npm run build
+
+      - name: Build server
+        working-directory: ./server
+        run: npm run build
+
+      - name: Run e2e tests
+        working-directory: ./e2e
+        run: npm run test:e2e
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: e2e/test-results/junit.xml
+          check_name: E2E Test Results
+
+      - name: Upload HTML test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: e2e/playwright-report/
+          retention-days: 30
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 30
+
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: e2e/test-results/
+          retention-days: 30
+
   create-release:
     runs-on: ubuntu-latest
-    needs: [check-release, build-and-test]
+    needs: [check-release, build-and-test, e2e-tests]
     if: |
       needs.build-and-test.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
       (github.event.inputs.release-type != '' ||
        (needs.check-release.outputs.should_release == 'true'))
     outputs:
@@ -142,8 +223,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -175,10 +256,11 @@ jobs:
 
   docker-build-push:
     runs-on: ubuntu-latest
-    needs: [check-release, build-and-test, create-release]
+    needs: [check-release, build-and-test, e2e-tests, create-release]
     if: |
       always() &&
       needs.build-and-test.result == 'success' &&
+      needs.e2e-tests.result == 'success' &&
       (needs.create-release.result == 'success' || needs.create-release.result == 'skipped') &&
       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
 

@@ -28,6 +28,7 @@ function Header({
         <button
           onClick={onLogoClick}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          data-testid="logo-button"
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
             <span className="material-symbols-outlined text-2xl">auto_stories</span>
@@ -52,11 +53,15 @@ function Header({
           <button
             onClick={onSettingsClick}
             className="flex items-center justify-center p-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
+            data-testid="settings-button"
           >
             <span className="material-symbols-outlined">settings</span>
           </button>
           {showHelpButton && (
-            <button className="flex items-center justify-center p-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">
+            <button 
+              className="flex items-center justify-center p-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
+              data-testid="help-button"
+            >
               <span className="material-symbols-outlined">help</span>
             </button>
           )}
