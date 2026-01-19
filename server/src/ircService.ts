@@ -83,7 +83,27 @@ export class IrcService {
     });
 
     this.ircClient.on('error', (error: Error) => {
-      logger.error('IRC error', { error: error.message });
+      logger.error('IRC error', { error: error.message, code: (error as any).code });
+      this.status = 'disconnected';
+    });
+
+    this.ircClient.on('banned', (info: any) => {
+      let banType: string;
+      if (info.type === 'server') {
+        banType = 'server';
+      } else if (info.type === 'gline') {
+        banType = 'server (G-line/Z-line - connection dropped)';
+      } else {
+        banType = `channel ${info.channel || this.config.channel}`;
+      }
+
+      logger.error(`Banned from ${banType}`, {
+        type: info.type,
+        channel: info.channel,
+        currentNickname: info.currentNick,
+        message: info.message,
+        suggestion: 'User should try reconnecting to get a new random nickname'
+      });
       this.status = 'disconnected';
     });
 
@@ -281,7 +301,7 @@ export class IrcService {
   async updateConfig(newConfig: IrcConfig): Promise<void> {
     // Remove all listeners from old client to prevent memory leaks
     this.ircClient.removeAllListeners();
-    
+
     // Disconnect from current server
     this.disconnect();
 
@@ -301,6 +321,7 @@ export class IrcService {
     this.dccHandler = new DccHandler(this.downloadDir, this.tempDir);
 
     // Create new IRC client with updated config
+    // Note: New client = new nickname = ban status reset
     this.ircClient = new IrcClient(
       {
         server: newConfig.server,
@@ -315,6 +336,7 @@ export class IrcService {
 
     // Only reconnect if enabled
     if (newConfig.enabled) {
+      logger.info('Connecting with new configuration (ban status reset)');
       await this.connect();
     } else {
       logger.info('IRC is disabled, not reconnecting');
@@ -323,5 +345,21 @@ export class IrcService {
 
   getConfig(): IrcConfig {
     return { ...this.config };
+  }
+
+  /**
+   * Check if currently banned from IRC
+   */
+  isBanned(): boolean {
+    return this.ircClient.isBannedFromServer();
+  }
+
+  /**
+   * Attempt to reconnect with a new random nickname
+   * Useful after being banned
+   */
+  async reconnectWithNewNickname(): Promise<void> {
+    logger.info('Attempting to reconnect with new random nickname');
+    await this.ircClient.reconnectWithNewNickname();
   }
 }

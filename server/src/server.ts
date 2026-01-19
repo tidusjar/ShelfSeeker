@@ -75,9 +75,9 @@ app.post('/api/connect', async (req, res) => {
     // Only connect if IRC is enabled
     const ircConfig = configService.getIrcConfig();
     if (!ircConfig.enabled) {
-      return res.json({ 
-        success: false, 
-        error: 'IRC is disabled. Please enable it in settings.' 
+      return res.json({
+        success: false,
+        error: 'IRC is disabled. Please enable it in settings.'
       });
     }
 
@@ -88,9 +88,41 @@ app.post('/api/connect', async (req, res) => {
   }
 });
 
+app.post('/api/reconnect', async (req, res) => {
+  try {
+    // Only reconnect if IRC is enabled
+    const ircConfig = configService.getIrcConfig();
+    if (!ircConfig.enabled) {
+      return res.json({
+        success: false,
+        error: 'IRC is disabled. Please enable it in settings.'
+      });
+    }
+
+    // Reconnect with new random nickname (useful after bans)
+    await ircService.reconnectWithNewNickname();
+    res.json({
+      success: true,
+      data: {
+        status: 'connected',
+        message: 'Reconnected with a new random nickname'
+      }
+    });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
 app.get('/api/status', (req, res) => {
   const status = ircService.getStatus();
-  res.json({ success: true, data: { connectionStatus: status } });
+  const isBanned = ircService.isBanned();
+  res.json({
+    success: true,
+    data: {
+      connectionStatus: status,
+      isBanned
+    }
+  });
 });
 
 app.post('/api/search', async (req, res) => {

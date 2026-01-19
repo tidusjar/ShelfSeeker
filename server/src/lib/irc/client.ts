@@ -25,7 +25,10 @@ export class IrcClient extends EventEmitter {
   private retryCount = 0;
   private maxRetries = 3;
   private retryDelay = TIMEOUTS.IRC_RETRY_DELAY;
-  
+  private isBanned = false;  // Track if we've been banned
+  private consecutiveDrops = 0;  // Track connection drops without server response
+  private receivedServerMessage = false;  // Track if we ever got a server response
+
   // Progress tracking
   private progressInterval?: NodeJS.Timeout;
   private lastProgressTime?: number;
@@ -59,9 +62,18 @@ export class IrcClient extends EventEmitter {
    * Set up IRC client event handlers
    */
   private setupEventHandlers(): void {
+    // Track raw IRC messages to detect server responses
+    this.client.on('raw', (event: any) => {
+      // Track if we've received ANY message from the server
+      if (event.from_server) {
+        this.receivedServerMessage = true;
+      }
+    });
+
     this.client.on('registered', () => {
       this.status = 'connected';
       this.retryCount = 0;
+      this.consecutiveDrops = 0;  // Reset on successful connection
       this.emit('connected');
 
       // Join the channel
@@ -81,6 +93,30 @@ export class IrcClient extends EventEmitter {
     });
 
     this.client.on('socket close', () => {
+      // Detect G-line/Z-line ban: socket closes during connecting without any server response
+      if (this.status === 'connecting' && !this.receivedServerMessage) {
+        this.consecutiveDrops++;
+
+        // After 2 consecutive drops without server response, assume we're banned
+        if (this.consecutiveDrops >= 2) {
+          this.isBanned = true;
+          this.status = 'error';
+          const error = new Error(
+            `IRC Server Ban: The server is dropping your connection without responding. ` +
+            `This indicates a G-line/Z-line ban (global ban), likely due to your IP address or too many connection attempts. ` +
+            `Try reconnecting later to get a new random nickname, or contact the server administrator.`
+          );
+          (error as any).code = 'IRC_GLINE_BAN';
+          this.emit('banned', {
+            type: 'gline',
+            message: 'Server dropping connection without response',
+            currentNick: this.config.nick
+          });
+          this.emit('error', error);
+          return;
+        }
+      }
+
       if (this.status !== 'disconnected') {
         this.emit('connection_lost');
         this.handleReconnect();
@@ -203,12 +239,70 @@ export class IrcClient extends EventEmitter {
     this.client.on('privmsg', (event: any) => {
       // Silent
     });
+
+    // Handle ban errors
+    // 465 = ERR_YOUREBANNEDCREEP (server-level ban)
+    this.client.on('465', (event: any) => {
+      this.isBanned = true;
+      this.status = 'error';
+      const error = new Error(
+        `IRC Server Ban: Your connection has been blocked by the server. ` +
+        `This is usually due to too many connection attempts or policy violations. ` +
+        `Try reconnecting later to get a new random nickname, or contact the server administrator.`
+      );
+      (error as any).code = 'IRC_SERVER_BAN';
+      this.emit('banned', {
+        type: 'server',
+        message: event.params?.[1] || 'You are banned from this server',
+        currentNick: this.config.nick
+      });
+      this.emit('error', error);
+    });
+
+    // 474 = ERR_BANNEDFROMCHAN (channel-level ban)
+    this.client.on('474', (event: any) => {
+      this.isBanned = true;
+      this.status = 'error';
+      const channel = event.params?.[1] || this.config.channel;
+      const error = new Error(
+        `IRC Channel Ban: Cannot join channel ${channel}. ` +
+        `This ban may be temporary. Try reconnecting later to get a new random nickname.`
+      );
+      (error as any).code = 'IRC_CHANNEL_BAN';
+      this.emit('banned', {
+        type: 'channel',
+        channel,
+        message: event.params?.[2] || 'You are banned from this channel',
+        currentNick: this.config.nick
+      });
+      this.emit('error', error);
+    });
+
+    // 477 = ERR_NOCHANMODES (channel requires registration)
+    this.client.on('477', (event: any) => {
+      this.status = 'error';
+      const channel = event.params?.[1] || this.config.channel;
+      const error = new Error(`Cannot join channel ${channel}: Channel requires registration or authentication`);
+      (error as any).code = 'IRC_REGISTRATION_REQUIRED';
+      this.emit('error', error);
+    });
+
+    // Catch-all for unknown IRC commands (including numeric errors we might have missed)
+    this.client.on('unknown command', (event: any) => {
+      // Silent - log if needed for debugging
+    });
   }
 
   /**
    * Handle reconnection attempts
    */
   private async handleReconnect(): Promise<void> {
+    // Don't reconnect if we've been banned
+    if (this.isBanned) {
+      this.emit('reconnect_failed', new Error('Cannot reconnect: banned from server/channel'));
+      return;
+    }
+
     if (this.retryCount >= this.maxRetries) {
       this.emit('reconnect_failed');
       return;
@@ -230,6 +324,11 @@ export class IrcClient extends EventEmitter {
    * Connect to the IRC server
    */
   async connect(): Promise<void> {
+    // Don't attempt to connect if banned
+    if (this.isBanned) {
+      throw new Error('Cannot connect: banned from server/channel. Please reconnect via the web interface to get a new random nickname, or wait for the ban to expire.');
+    }
+
     return new Promise((resolve, reject) => {
       this.status = 'connecting';
 
@@ -240,17 +339,27 @@ export class IrcClient extends EventEmitter {
       const onJoined = () => {
         clearTimeout(timeout);
         this.removeListener('error', onError);
+        this.removeListener('banned', onBanned);
         resolve();
       };
 
       const onError = (err: Error) => {
         clearTimeout(timeout);
         this.removeListener('joined', onJoined);
+        this.removeListener('banned', onBanned);
         reject(err);
+      };
+
+      const onBanned = (info: any) => {
+        clearTimeout(timeout);
+        this.removeListener('joined', onJoined);
+        this.removeListener('error', onError);
+        reject(new Error(info.message || 'Banned from IRC'));
       };
 
       this.once('joined', onJoined);
       this.once('error', onError);
+      this.once('banned', onBanned);
 
       this.client.connect({
         host: this.config.server,
@@ -314,5 +423,40 @@ export class IrcClient extends EventEmitter {
    */
   updateDccHandler(dccHandler: DccHandler): void {
     this.dccHandler = dccHandler;
+  }
+
+  /**
+   * Reset ban status (useful when user changes nickname or server)
+   */
+  resetBanStatus(): void {
+    this.isBanned = false;
+  }
+
+  /**
+   * Check if currently banned
+   */
+  isBannedFromServer(): boolean {
+    return this.isBanned;
+  }
+
+  /**
+   * Reconnect with a new random nickname (useful after being banned)
+   * This resets the ban status and generates a new nickname
+   */
+  async reconnectWithNewNickname(): Promise<void> {
+    // Disconnect if currently connected
+    if (this.status !== 'disconnected') {
+      this.disconnect();
+      // Wait for clean disconnect
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Reset ban status and generate new nickname
+    this.isBanned = false;
+    this.retryCount = 0;
+    this.config.nick = this.generateNickname();
+
+    // Attempt connection with new nickname
+    await this.connect();
   }
 }
