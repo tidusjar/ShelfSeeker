@@ -46,7 +46,7 @@ export class HomePage {
         const response = await this.page.evaluate(async (url) => {
           const res = await fetch(`${url}/api/status`);
           return await res.json();
-        }, apiUrl);
+        }, apiUrl) as { success: boolean; data?: { connectionStatus: string } };
         
         if (response.success && response.data?.connectionStatus === 'connected') {
           return;
@@ -221,7 +221,8 @@ export class SettingsPage {
       const enableToggle = this.page.locator('[data-testid="irc-enabled-toggle"]');
       const isChecked = await enableToggle.isChecked();
       if (isChecked !== config.enabled) {
-        await enableToggle.click();
+        // Use force: true to click through any intercepting elements
+        await enableToggle.click({ force: true });
       }
     }
 
