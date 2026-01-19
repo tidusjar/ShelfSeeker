@@ -16,8 +16,10 @@ export class SearchService {
 
   /**
    * Search both IRC and NZB sources in parallel, returning combined results
+   * @param query Search query string
+   * @param enrich Whether to enrich results with metadata (default: false for performance)
    */
-  async search(query: string): Promise<UnifiedSearchResult[]> {
+  async search(query: string, enrich: boolean = false): Promise<UnifiedSearchResult[]> {
     const results: UnifiedSearchResult[] = [];
 
     // Check IRC enabled status and connection
@@ -33,7 +35,7 @@ export class SearchService {
       throw new Error('No search sources available. Please enable IRC or add NZB providers.');
     }
 
-    console.log(`[SearchService] Searching: IRC=${ircEnabled}, NZB=${nzbEnabled} (${enabledNzbProviders.length} providers)`);
+    console.log(`[SearchService] Searching: IRC=${ircEnabled}, NZB=${nzbEnabled} (${enabledNzbProviders.length} providers), enrich=${enrich}`);
 
     // Launch parallel searches
     const searchPromises: Promise<UnifiedSearchResult[]>[] = [];
@@ -41,7 +43,7 @@ export class SearchService {
     // IRC search
     if (ircEnabled) {
       searchPromises.push(
-        this.ircService.search(query).catch(error => {
+        this.ircService.search(query, enrich).catch(error => {
           console.error('[SearchService] IRC search failed:', error.message);
           return []; // Return empty array on failure
         })
@@ -51,7 +53,7 @@ export class SearchService {
     // NZB search
     if (nzbEnabled) {
       searchPromises.push(
-        this.searchNzb(query, enabledNzbProviders).catch(error => {
+        this.searchNzb(query, enabledNzbProviders, enrich).catch(error => {
           console.error('[SearchService] NZB search failed:', error.message);
           return []; // Return empty array on failure
         })
@@ -79,9 +81,9 @@ export class SearchService {
   /**
    * Search NZB providers and increment usage counters
    */
-  private async searchNzb(query: string, providers: any[]): Promise<NzbSearchResult[]> {
+  private async searchNzb(query: string, providers: any[], enrich: boolean = false): Promise<NzbSearchResult[]> {
     // Perform search
-    const results = await this.nzbService.search(query, providers);
+    const results = await this.nzbService.search(query, providers, enrich);
 
     // Increment usage counters for all providers that were queried
     for (const provider of providers) {

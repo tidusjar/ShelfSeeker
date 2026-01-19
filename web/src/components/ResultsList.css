@@ -345,13 +345,6 @@
   color: var(--accent-secondary);
 }
 
-.result-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
 .result-title {
   font-family: var(--font-display);
   font-size: 1.25rem;
@@ -506,6 +499,25 @@
   white-space: nowrap;
 }
 
+/* Book Cover and Metadata Layout */
+.result-content {
+  display: flex;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.result-cover-container {
+  flex-shrink: 0;
+}
+
+.result-text-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .results-header-content {
@@ -595,5 +607,13 @@
   .result-meta {
     gap: 1rem;
     flex-direction: column;
+  }
+
+  .result-content {
+    flex-direction: column;
+  }
+
+  .result-cover-container {
+    align-self: flex-start;
   }
 }

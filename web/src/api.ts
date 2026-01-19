@@ -12,6 +12,26 @@ import type {
 
 const API_BASE = '/api';
 
+// Request deduplication to prevent React StrictMode duplicate calls
+const pendingRequests = new Map<string, Promise<any>>();
+
+function deduplicatedFetch<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
+  // Check if this request is already in flight
+  if (pendingRequests.has(key)) {
+    console.log(`[API] Deduplicating request: ${key}`);
+    return pendingRequests.get(key)!;
+  }
+
+  // Start the request and store the promise
+  const promise = fetchFn().finally(() => {
+    // Remove from pending once complete
+    pendingRequests.delete(key);
+  });
+
+  pendingRequests.set(key, promise);
+  return promise;
+}
+
 export const api = {
   async connect(): Promise<ApiResponse<{ status: ConnectionStatus }>> {
     const response = await fetch(`${API_BASE}/connect`, { method: 'POST' });
@@ -19,12 +39,27 @@ export const api = {
   },
 
   async search(query: string): Promise<ApiResponse<SearchResult[]>> {
-    const response = await fetch(`${API_BASE}/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
+    return deduplicatedFetch(`search:${query}`, async () => {
+      const response = await fetch(`${API_BASE}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      return response.json();
     });
-    return response.json();
+  },
+
+  async enrichResults(results: SearchResult[]): Promise<ApiResponse<SearchResult[]>> {
+    // Create a stable key based on the book numbers being enriched
+    const bookNumbers = results.map(r => r.bookNumber).sort().join(',');
+    return deduplicatedFetch(`enrich:${bookNumbers}`, async () => {
+      const response = await fetch(`${API_BASE}/enrich`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ results }),
+      });
+      return response.json();
+    });
   },
 
   async download(result: SearchResult): Promise<ApiResponse<{ filename: string }>> {

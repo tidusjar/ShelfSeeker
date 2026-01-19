@@ -89,10 +89,10 @@ describe('SearchService', () => {
     it('should search both IRC and NZB when both are enabled', async () => {
       const results = await searchService.search('test query');
 
-      expect(mockIrcService.search).toHaveBeenCalledWith('test query');
+      expect(mockIrcService.search).toHaveBeenCalledWith('test query', false);
       expect(mockNzbService.search).toHaveBeenCalledWith('test query', [
         expect.objectContaining({ id: 'provider-1' })
-      ]);
+      ], false);
       expect(results).toHaveLength(2);
     });
 
@@ -212,7 +212,7 @@ describe('SearchService', () => {
       expect(mockNzbService.search).toHaveBeenCalledWith('test', [
         expect.objectContaining({ id: 'p1' }),
         expect.objectContaining({ id: 'p2' })
-      ]);
+      ], false);
     });
 
     it('should increment NZB usage counters for all providers', async () => {
@@ -268,7 +268,7 @@ describe('SearchService', () => {
       expect(mockNzbService.search).toHaveBeenCalledWith('test', [
         expect.objectContaining({ id: 'p1', enabled: true }),
         expect.objectContaining({ id: 'p3', enabled: true })
-      ]);
+      ], false);
     });
 
     it('should execute IRC and NZB searches in parallel', async () => {

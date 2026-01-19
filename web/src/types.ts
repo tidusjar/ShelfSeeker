@@ -1,3 +1,31 @@
+// Book metadata from external APIs (Open Library, Google Books, etc.)
+export interface BookMetadata {
+  // Cover images at different sizes
+  coverUrl?: string;
+  coverUrlSmall?: string;
+  coverUrlMedium?: string;
+  coverUrlLarge?: string;
+  
+  // Text metadata
+  description?: string;
+  publishDate?: string;
+  publisher?: string;
+  language?: string;
+  
+  // Numeric metadata
+  pageCount?: number;
+  averageRating?: number;
+  ratingsCount?: number;
+  
+  // Identifiers
+  isbn?: string;
+  isbn13?: string;
+  openLibraryKey?: string;
+  
+  // Categories
+  subjects?: string[];
+}
+
 export interface SearchResult {
   source: 'irc' | 'nzb';
   sourceProvider: string;
@@ -12,6 +40,7 @@ export interface SearchResult {
   command?: string;            // IRC only
   nzbUrl?: string;             // NZB only
   guid?: string;               // NZB only
+  metadata?: BookMetadata;     // Optional enriched metadata from external APIs
 }
 
 export interface DownloadProgress {

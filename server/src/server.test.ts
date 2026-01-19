@@ -8,6 +8,7 @@ vi.mock('./configService.js');
 vi.mock('./nzbService.js');
 vi.mock('./searchService.js');
 vi.mock('./downloaderService.js');
+vi.mock('./lib/metadata/enrichmentService.js');
 
 describe('Server API Endpoints', () => {
   let app: express.Application;
@@ -16,6 +17,7 @@ describe('Server API Endpoints', () => {
   let mockNzbService: any;
   let mockSearchService: any;
   let mockDownloaderService: any;
+  let mockEnrichmentService: any;
 
   beforeEach(async () => {
     // Create fresh mocks for each test
@@ -24,6 +26,7 @@ describe('Server API Endpoints', () => {
     const { NzbService } = await import('./nzbService.js');
     const { SearchService } = await import('./searchService.js');
     const { DownloaderService } = await import('./downloaderService.js');
+    const enrichmentService = await import('./lib/metadata/enrichmentService.js');
 
     mockIrcService = {
       connect: vi.fn().mockResolvedValue(undefined),
@@ -99,12 +102,26 @@ describe('Server API Endpoints', () => {
       sendToSABnzbd: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockEnrichmentService = {
+      enrichSearchResults: vi.fn().mockImplementation(async (results) => 
+        results.map((r: any) => ({
+          ...r,
+          metadata: {
+            isbn: '9781234567890',
+            publisher: 'Test Publisher',
+            coverUrl: 'https://example.com/cover.jpg'
+          }
+        }))
+      )
+    };
+
     // Mock the module exports
     vi.mocked(IrcService).mockImplementation(() => mockIrcService as any);
     vi.mocked(ConfigService).mockImplementation(() => mockConfigService as any);
     vi.mocked(NzbService).mockImplementation(() => mockNzbService as any);
     vi.mocked(SearchService).mockImplementation(() => mockSearchService as any);
     vi.mocked(DownloaderService).mockImplementation(() => mockDownloaderService as any);
+    vi.mocked(enrichmentService.enrichSearchResults).mockImplementation(mockEnrichmentService.enrichSearchResults);
 
     // Create a test Express app with the same routes
     app = express();
@@ -116,6 +133,7 @@ describe('Server API Endpoints', () => {
     const nzbService = mockNzbService;
     const searchService = mockSearchService;
     const downloaderService = mockDownloaderService;
+    const { enrichSearchResults } = mockEnrichmentService;
 
     // Health/Status endpoints
     app.post('/api/connect', async (req, res) => {
@@ -148,6 +166,20 @@ describe('Server API Endpoints', () => {
         }
         const results = await searchService.search(query);
         res.json({ success: true, data: results });
+      } catch (error) {
+        res.json({ success: false, error: (error as Error).message });
+      }
+    });
+
+    // Enrich endpoint
+    app.post('/api/enrich', async (req, res) => {
+      try {
+        const { results } = req.body;
+        if (!results || !Array.isArray(results)) {
+          return res.json({ success: false, error: 'Invalid results array' });
+        }
+        const enrichedResults = await enrichSearchResults(results);
+        res.json({ success: true, data: enrichedResults });
       } catch (error) {
         res.json({ success: false, error: (error as Error).message });
       }
@@ -747,6 +779,151 @@ describe('Server API Endpoints', () => {
         success: false,
         error: 'Missing nzbUrl or title',
       });
+    });
+  });
+
+  describe('Enrich Endpoint', () => {
+    it('POST /api/enrich - should enrich search results', async () => {
+      const mockResults = [
+        {
+          botCommand: '!Bot',
+          filename: 'Test Book - Test Author.epub',
+          filesize: '1.5MB',
+          rawCommand: '!Bot Test Book - Test Author.epub',
+          title: 'Test Book',
+          author: 'Test Author',
+          fileType: 'epub'
+        }
+      ];
+
+      const response = await request(app)
+        .post('/api/enrich')
+        .send({ results: mockResults });
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0]).toMatchObject({
+        title: 'Test Book',
+        author: 'Test Author',
+        metadata: {
+          isbn: '9781234567890',
+          publisher: 'Test Publisher',
+          coverUrl: 'https://example.com/cover.jpg'
+        }
+      });
+      expect(mockEnrichmentService.enrichSearchResults).toHaveBeenCalledWith(mockResults);
+    });
+
+    it('POST /api/enrich - should enrich multiple results', async () => {
+      const mockResults = [
+        {
+          botCommand: '!Bot1',
+          filename: 'Book1.epub',
+          filesize: '1MB',
+          rawCommand: '!Bot1 Book1.epub',
+          title: 'Book 1',
+          author: 'Author 1',
+          fileType: 'epub'
+        },
+        {
+          botCommand: '!Bot2',
+          filename: 'Book2.pdf',
+          filesize: '2MB',
+          rawCommand: '!Bot2 Book2.pdf',
+          title: 'Book 2',
+          author: 'Author 2',
+          fileType: 'pdf'
+        }
+      ];
+
+      const response = await request(app)
+        .post('/api/enrich')
+        .send({ results: mockResults });
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(2);
+      expect(mockEnrichmentService.enrichSearchResults).toHaveBeenCalledWith(mockResults);
+    });
+
+    it('POST /api/enrich - should reject missing results', async () => {
+      const response = await request(app)
+        .post('/api/enrich')
+        .send({});
+
+      expect(response.body).toEqual({
+        success: false,
+        error: 'Invalid results array'
+      });
+      expect(mockEnrichmentService.enrichSearchResults).not.toHaveBeenCalled();
+    });
+
+    it('POST /api/enrich - should reject non-array results', async () => {
+      const response = await request(app)
+        .post('/api/enrich')
+        .send({ results: 'not an array' });
+
+      expect(response.body).toEqual({
+        success: false,
+        error: 'Invalid results array'
+      });
+      expect(mockEnrichmentService.enrichSearchResults).not.toHaveBeenCalled();
+    });
+
+    it('POST /api/enrich - should handle empty results array', async () => {
+      const response = await request(app)
+        .post('/api/enrich')
+        .send({ results: [] });
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual([]);
+      expect(mockEnrichmentService.enrichSearchResults).toHaveBeenCalledWith([]);
+    });
+
+    it('POST /api/enrich - should handle enrichment errors', async () => {
+      mockEnrichmentService.enrichSearchResults.mockRejectedValueOnce(
+        new Error('Enrichment service failed')
+      );
+
+      const mockResults = [
+        {
+          botCommand: '!Bot',
+          filename: 'Book.epub',
+          filesize: '1MB',
+          rawCommand: '!Bot Book.epub',
+          title: 'Book',
+          author: 'Author',
+          fileType: 'epub'
+        }
+      ];
+
+      const response = await request(app)
+        .post('/api/enrich')
+        .send({ results: mockResults });
+
+      expect(response.body).toEqual({
+        success: false,
+        error: 'Enrichment service failed'
+      });
+    });
+
+    it('POST /api/enrich - should handle large result sets', async () => {
+      const mockResults = Array(100).fill(null).map((_, i) => ({
+        botCommand: `!Bot${i}`,
+        filename: `Book${i}.epub`,
+        filesize: '1MB',
+        rawCommand: `!Bot${i} Book${i}.epub`,
+        title: `Book ${i}`,
+        author: `Author ${i}`,
+        fileType: 'epub'
+      }));
+
+      const response = await request(app)
+        .post('/api/enrich')
+        .send({ results: mockResults });
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(100);
+      expect(mockEnrichmentService.enrichSearchResults).toHaveBeenCalledWith(mockResults);
     });
   });
 });

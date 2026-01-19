@@ -99,9 +99,31 @@ app.post('/api/search', async (req, res) => {
       return res.json({ success: false, error: 'Invalid query' });
     }
 
-    // Use unified search service (searches both IRC and NZB)
-    const results = await searchService.search(query);
+    // Use unified search service WITHOUT enrichment for fast results
+    const results = await searchService.search(query, false);
     res.json({ success: true, data: results });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+app.post('/api/enrich', async (req, res) => {
+  try {
+    const { results } = req.body;
+
+    if (!results || !Array.isArray(results)) {
+      return res.json({ success: false, error: 'Invalid results array' });
+    }
+
+    console.log(`[Server] Enriching ${results.length} results...`);
+
+    // Import enrichment service
+    const { enrichSearchResults } = await import('./lib/metadata/enrichmentService.js');
+
+    // Enrich the provided results
+    const enrichedResults = await enrichSearchResults(results);
+
+    res.json({ success: true, data: enrichedResults });
   } catch (error) {
     res.json({ success: false, error: (error as Error).message });
   }

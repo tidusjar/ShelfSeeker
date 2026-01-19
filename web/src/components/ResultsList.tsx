@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { SearchResult } from '../types';
+import BookCover from './BookCover';
+import { BookMetadata } from './BookMetadata';
 import './ResultsList.css';
 
 interface ResultsListProps {
@@ -300,23 +302,35 @@ function ResultsList({ results, onDownload, onSendToDownloader, searchQuery }: R
             </div>
 
             <div className="result-content">
-              <h3 className="result-title">{result.title}</h3>
-              {result.author && (
-                <p className="result-author">{result.author}</p>
+              {result.metadata && (
+                <div className="result-cover-container">
+                  <BookCover metadata={result.metadata} title={result.title} size="small" />
+                </div>
               )}
+              
+              <div className="result-text-content">
+                <h3 className="result-title">{result.title}</h3>
+                {result.author && (
+                  <p className="result-author">{result.author}</p>
+                )}
 
-              <div className="result-meta">
-                <div className="meta-item">
-                  <span className="meta-label">Type:</span>
-                  <span className="meta-value meta-filetype">{result.fileType.toUpperCase()}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Size:</span>
-                  <span className="meta-value">{formatFileSize(result.size)}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Source:</span>
-                  <span className="meta-value">{result.sourceProvider}</span>
+                {result.metadata && (
+                  <BookMetadata metadata={result.metadata} />
+                )}
+
+                <div className="result-meta">
+                  <div className="meta-item">
+                    <span className="meta-label">Type:</span>
+                    <span className="meta-value meta-filetype">{result.fileType.toUpperCase()}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Size:</span>
+                    <span className="meta-value">{formatFileSize(result.size)}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Source:</span>
+                    <span className="meta-value">{result.sourceProvider}</span>
+                  </div>
                 </div>
               </div>
             </div>
