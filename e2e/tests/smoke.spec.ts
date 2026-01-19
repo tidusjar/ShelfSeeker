@@ -3,26 +3,18 @@ import { test, expect } from '@playwright/test';
 test.describe('Smoke Tests', () => {
   test('should load the application', async ({ page }) => {
     await page.goto('/');
-    
-    // Wait for page to load
     await page.waitForLoadState('networkidle');
     
-    // Check that we can see the main content
-    const body = await page.locator('body');
-    expect(await body.isVisible()).toBe(true);
+    await expect(page.locator('body')).toBeVisible();
   });
 
   test('should have search functionality visible', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    // Should have a search input
     const searchInput = page.locator('[data-testid="search-input"]');
-    expect(await searchInput.isVisible()).toBe(true);
-    
-    // Should show search placeholder text
-    const placeholder = await searchInput.getAttribute('placeholder');
-    expect(placeholder).toContain('Search');
+    await expect(searchInput).toBeVisible();
+    await expect(searchInput).toHaveAttribute('placeholder', /Search/i);
   });
 
   test('mock servers should be running', async ({ page }) => {

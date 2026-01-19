@@ -7,28 +7,18 @@ test.describe('Search Flow', () => {
     const homePage = new HomePage(page);
     const resultsPage = new SearchResultsPage(page);
 
-    // Navigate to app
     await homePage.navigate();
-
-    // Configure IRC through Settings UI
     await configureIrcForTest(page);
-
-    // Wait for IRC to connect (status shows "Online")
     await homePage.waitForConnected();
 
-    // Perform search
+    // Search and verify results
     await homePage.search('dune');
-
-    // Wait for results
     await resultsPage.waitForResults();
 
-    // Verify we have results
     const count = await resultsPage.getResultCount();
     expect(count).toBeGreaterThan(0);
 
-    // Check first result has expected data
-    // Note: Parser interprets "Frank Herbert - Dune" as title="Frank Herbert", author="Dune"
-    // because "Dune" matches the single-word author pattern
+    // Verify first result has expected data
     const firstResult = await resultsPage.getResult(0);
     expect(firstResult.title).toContain('Frank Herbert');
     expect(firstResult.author).toContain('Dune');
@@ -47,24 +37,19 @@ test.describe('Search Flow', () => {
     const resultsPage = new SearchResultsPage(page);
 
     await homePage.navigate();
-    
-    // Configure IRC through Settings UI
     await configureIrcForTest(page);
-    
     await homePage.waitForConnected();
 
     // First search
     await homePage.search('dune');
     await resultsPage.waitForResults();
-    const duneCount = await resultsPage.getResultCount();
-    expect(duneCount).toBeGreaterThan(0);
+    expect(await resultsPage.getResultCount()).toBeGreaterThan(0);
 
-    // Second search (new query)
-    await page.goto('/'); // Go back to home
+    // Second search
+    await page.goto('/');
     await homePage.search('brandon sanderson');
     await resultsPage.waitForResults();
-    const brandonCount = await resultsPage.getResultCount();
-    expect(brandonCount).toBeGreaterThan(0);
+    expect(await resultsPage.getResultCount()).toBeGreaterThan(0);
   });
 
   test('should display search results with sequential numbering', async ({ page }) => {
@@ -72,20 +57,14 @@ test.describe('Search Flow', () => {
     const resultsPage = new SearchResultsPage(page);
 
     await homePage.navigate();
-    
-    // Configure IRC through Settings UI
     await configureIrcForTest(page);
-    
     await homePage.waitForConnected();
 
     await homePage.search('brandon sanderson');
     await resultsPage.waitForResults();
 
-    const count = await resultsPage.getResultCount();
-    expect(count).toBeGreaterThan(1); // Should have multiple results
-
-    // Results should be numbered sequentially
-    // (Visual check would verify bookNumber: 1, 2, 3, etc.)
+    // Verify multiple results exist (sequential numbering is visual)
+    expect(await resultsPage.getResultCount()).toBeGreaterThan(1);
   });
 });
 

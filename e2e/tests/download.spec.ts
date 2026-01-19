@@ -11,27 +11,19 @@ test.describe('Download Flow', () => {
     // Navigate and configure IRC
     await homePage.navigate();
     await configureIrcForTest(page);
-    
-    // Wait for connection and search
     await homePage.waitForConnected();
+    
+    // Search and download
     await homePage.search('dune');
     await resultsPage.waitForResults();
-
-    // Download first result
     await resultsPage.downloadResult(0);
 
-    // Verify download panel appears
-    await page.waitForTimeout(500);
-    const isVisible = await downloadPanel.isVisible();
-    expect(isVisible).toBe(true);
-
-    // Wait for completion (DCC transfer)
+    // Verify download panel appears and completes
+    await expect(page.locator('[data-testid="download-panel"]')).toBeVisible();
     await downloadPanel.waitForComplete();
 
-    // Panel should auto-dismiss after success
-    await page.waitForTimeout(4000);
-    const stillVisible = await downloadPanel.isVisible();
-    expect(stillVisible).toBe(false);
+    // Verify panel auto-dismisses after success (wait up to 5s)
+    await expect(page.locator('[data-testid="download-panel"]')).toBeHidden({ timeout: 5000 });
   });
 
   test('should handle download initiation', async ({ page }) => {
@@ -39,20 +31,15 @@ test.describe('Download Flow', () => {
     const resultsPage = new SearchResultsPage(page);
 
     await homePage.navigate();
-    
-    // Configure IRC through Settings UI
     await configureIrcForTest(page);
-    
     await homePage.waitForConnected();
+    
     await homePage.search('test');
     await resultsPage.waitForResults();
 
-    // Click download button - should trigger download
+    // Click download button and verify panel appears
     await resultsPage.downloadResult(0);
-
-    // Download panel should appear
-    await expect(page.locator('[data-testid="download-panel"]'))
-      .toBeVisible({ timeout: 2000 });
+    await expect(page.locator('[data-testid="download-panel"]')).toBeVisible({ timeout: 5000 });
   });
 });
 

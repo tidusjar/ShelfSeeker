@@ -15,10 +15,17 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1, // Single worker to prevent port conflicts
-  reporter: [
-    ['html'],
-    ['list']
-  ],
+  reporter: process.env.CI 
+    ? [
+        ['html'],
+        ['list'],
+        ['junit', { outputFile: 'test-results/junit.xml' }],
+        ['github']
+      ]
+    : [
+        ['html'],
+        ['list']
+      ],
   
   globalSetup: path.join(__dirname, 'helpers', 'global-setup.ts'),
   globalTeardown: path.join(__dirname, 'helpers', 'global-teardown.ts'),

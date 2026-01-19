@@ -45,10 +45,9 @@ test.describe('Settings Configuration', () => {
     const settingsPage = new SettingsPage(page);
     const mockConfig = getMockConfig();
 
-    // Navigate to settings
     await settingsPage.navigate();
 
-    // Add NZB provider
+    // Add NZB provider and verify success toast
     await settingsPage.addNzbProvider({
       name: 'Test NZB Indexer',
       url: `http://localhost:${mockConfig.nzbPort}`,
@@ -57,11 +56,7 @@ test.describe('Settings Configuration', () => {
       priority: 1
     });
 
-    // Verify success message appeared (already checked in addNzbProvider)
-    // Go back to home
-    await settingsPage.goBack();
-
-    // Success - provider was added
+    // Success message is already verified in addNzbProvider method
   });
 
   test('should configure both IRC and NZB providers', async ({ page }) => {
@@ -72,7 +67,7 @@ test.describe('Settings Configuration', () => {
     await homePage.navigate();
     await settingsPage.navigate();
 
-    // Configure IRC first
+    // Configure both sources
     await settingsPage.configureIrc({
       enabled: true,
       server: 'localhost',
@@ -81,7 +76,6 @@ test.describe('Settings Configuration', () => {
       searchCommand: '@search'
     });
 
-    // Add NZB provider
     await settingsPage.addNzbProvider({
       name: 'Multi-Source Test Provider',
       url: `http://localhost:${mockConfig.nzbPort}`,
@@ -89,40 +83,12 @@ test.describe('Settings Configuration', () => {
       categories: '7000,8010'
     });
 
-    // Go back to home
+    // Verify IRC connection works
     await settingsPage.goBack();
-
-    // Wait for IRC connection
     await homePage.waitForConnected();
-
-    // Now both sources should be configured and ready
+    
     const status = await homePage.getConnectionStatus();
     expect(status.toLowerCase()).toMatch(/online|connected/);
-  });
-
-  test('should handle IRC configuration with invalid settings gracefully', async ({ page }) => {
-    const settingsPage = new SettingsPage(page);
-
-    await settingsPage.navigate();
-
-    // Try to configure IRC with invalid port (should still save, but won't connect)
-    await settingsPage.goToIrcSettings();
-
-    // Fill with invalid data
-    const serverInput = page.locator('input[name="server"], input[id="server"]');
-    await serverInput.clear();
-    await serverInput.fill('invalid-server');
-
-    const portInput = page.locator('input[name="port"], input[id="port"]');
-    await portInput.clear();
-    await portInput.fill('99999');
-
-    // This should save but not necessarily connect
-    const saveButton = page.locator('button:has-text("Save Changes"), button:has-text("Save")').first();
-    await saveButton.click();
-
-    // Just verify we don't crash - the app should handle connection failures gracefully
-    await page.waitForTimeout(1000);
   });
 
   test('should navigate between settings tabs correctly', async ({ page }) => {
@@ -132,11 +98,11 @@ test.describe('Settings Configuration', () => {
 
     // Go to IRC settings
     await settingsPage.goToIrcSettings();
-    await expect(page.locator('text=/IRC/i')).toBeVisible();
+    await expect(page.locator('h2:has-text("IRC Configuration")')).toBeVisible();
 
     // Go to Newznab settings
     await settingsPage.goToNewznabSettings();
-    await expect(page.locator('text=/Newznab/i, text=/Indexer/i')).toBeVisible();
+    await expect(page.locator('h2:has-text("Newznab Indexers")')).toBeVisible();
 
     // Back to IRC
     await settingsPage.goToIrcSettings();

@@ -249,14 +249,10 @@ export class SettingsPage {
     const saveButton = this.page.locator('[data-testid="irc-save-button"]');
     await saveButton.click();
 
-    // Wait for success feedback or just give it time to save
-    try {
-      await this.page.waitForSelector('[data-testid="irc-save-message-success"]', { timeout: 3000 });
-    } catch (e) {
-      // If success message doesn't appear, just wait a bit for the save to complete
-      await this.page.waitForTimeout(1000);
-    }
-    await this.page.waitForTimeout(500);
+    // Wait for success feedback (or timeout gracefully)
+    await this.page.waitForSelector('[data-testid="irc-save-message-success"]', { timeout: 3000 }).catch(() => {
+      // Success message might not always appear, that's ok
+    });
   }
 
   /**
@@ -279,14 +275,9 @@ export class SettingsPage {
     priority?: number;
     apiLimit?: number;
   }): Promise<void> {
-    // Navigate to Newznab tab if not already there
     await this.goToNewznabSettings();
 
-    // Scroll to the form (it's at the bottom)
-    await this.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await this.page.waitForTimeout(300);
-
-    // Fill form fields by name attribute
+    // Fill form fields
     await this.page.fill('input[name="name"]', config.name);
     await this.page.fill('input[name="url"]', config.url);
     await this.page.fill('input[name="apiKey"]', config.apiKey);
@@ -294,22 +285,16 @@ export class SettingsPage {
     if (config.categories) {
       await this.page.fill('input[name="categories"]', config.categories);
     }
-
     if (config.priority !== undefined) {
       await this.page.fill('input[name="priority"]', config.priority.toString());
     }
-
     if (config.apiLimit !== undefined) {
       await this.page.fill('input[name="apiLimit"]', config.apiLimit.toString());
     }
 
-    // Click Add Indexer button
-    const addButton = this.page.locator('button:has-text("Add Indexer")');
-    await addButton.click();
-
-    // Wait for success message
-    await this.page.waitForSelector('text=/added successfully/i, text=/success/i', { timeout: 5000 });
-    await this.page.waitForTimeout(500);
+    // Submit and verify success
+    await this.page.locator('button:has-text("Add Indexer")').click();
+    await this.page.waitForSelector('[data-testid="nzb-feedback-success"]', { timeout: 5000 });
   }
 
   /**
