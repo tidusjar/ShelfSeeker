@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { join, basename, normalize } from 'path';
 // @ts-expect-error - adm-zip has no type definitions
 import AdmZip from 'adm-zip';
 
@@ -48,6 +48,41 @@ export class DccHandler extends EventEmitter {
   }
 
   /**
+   * Sanitize filename to prevent path traversal attacks
+   */
+  private sanitizeFilename(filename: string): string {
+    // Remove any path components
+    let sanitized = basename(filename);
+
+    // Replace dangerous characters with underscores
+    sanitized = sanitized.replace(/[<>:"|?*\x00-\x1f]/g, '_');
+
+    // Prevent hidden files by prepending underscore
+    if (sanitized.startsWith('.')) {
+      sanitized = '_' + sanitized;
+    }
+
+    // If result is empty, generate a safe default
+    if (!sanitized || sanitized.trim() === '') {
+      sanitized = `file_${Date.now()}`;
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * Validate that a path is within the target directory
+   */
+  private validatePath(filepath: string, targetDir: string): void {
+    const normalizedPath = normalize(filepath);
+    const normalizedTarget = normalize(targetDir);
+
+    if (!normalizedPath.startsWith(normalizedTarget)) {
+      throw new Error(`Path traversal attempt detected: ${filepath}`);
+    }
+  }
+
+  /**
    * Handle an incoming DCC transfer
    * @param transfer DCC transfer information from irc-framework
    * @param stream Readable stream from irc-framework
@@ -59,10 +94,16 @@ export class DccHandler extends EventEmitter {
     isSearchResult: boolean = false
   ): Promise<DccDownloadResult> {
     const targetDir = isSearchResult ? this.tempDir : this.downloadDir;
-    let filename = transfer.filename;
+    
+    // Sanitize filename to prevent path traversal
+    let filename = this.sanitizeFilename(transfer.filename);
 
     // Handle filename collisions by appending timestamp
     let filepath = join(targetDir, filename);
+    
+    // Validate path is within target directory
+    this.validatePath(filepath, targetDir);
+    
     if (existsSync(filepath) && !isSearchResult) {
       const timestamp = Date.now();
       const parts = filename.split('.');
@@ -70,6 +111,9 @@ export class DccHandler extends EventEmitter {
       const base = parts.join('.');
       filename = `${base}_${timestamp}.${ext}`;
       filepath = join(targetDir, filename);
+      
+      // Re-validate after handling collision
+      this.validatePath(filepath, targetDir);
     }
 
     // Download the file
@@ -125,8 +169,15 @@ export class DccHandler extends EventEmitter {
 
       for (const entry of zipEntries) {
         if (!entry.isDirectory) {
-          const extractedPath = join(targetDir, entry.entryName);
-          zip.extractEntryTo(entry, targetDir, false, true);
+          // Sanitize entry name to prevent path traversal
+          const sanitizedName = this.sanitizeFilename(entry.entryName);
+          const extractedPath = join(targetDir, sanitizedName);
+          
+          // Validate path is within target directory
+          this.validatePath(extractedPath, targetDir);
+          
+          // Extract with sanitized name
+          zip.extractEntryTo(entry, targetDir, false, true, false, sanitizedName);
           extractedFiles.push(extractedPath);
         }
       }

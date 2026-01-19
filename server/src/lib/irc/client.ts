@@ -4,6 +4,7 @@ import IRC from 'irc-framework';
 import { DccHandler, DccDownloadResult } from './dccHandler.js';
 import { DccReceiver } from './dccReceiver.js';
 import { ConnectionStatus } from '../types.js';
+import { TIMEOUTS } from '../../constants.js';
 
 export interface IrcConfig {
   server: string;
@@ -23,7 +24,7 @@ export class IrcClient extends EventEmitter {
   private status: ConnectionStatus = 'disconnected';
   private retryCount = 0;
   private maxRetries = 3;
-  private retryDelay = 5000;
+  private retryDelay = TIMEOUTS.IRC_RETRY_DELAY;
   
   // Progress tracking
   private progressInterval?: NodeJS.Timeout;
@@ -234,7 +235,7 @@ export class IrcClient extends EventEmitter {
 
       const timeout = setTimeout(() => {
         reject(new Error('Connection timeout'));
-      }, 30000);
+      }, TIMEOUTS.IRC_CONNECTION);
 
       const onJoined = () => {
         clearTimeout(timeout);
@@ -306,5 +307,12 @@ export class IrcClient extends EventEmitter {
    */
   getNickname(): string {
     return this.config.nick!;
+  }
+
+  /**
+   * Update the DCC handler (useful when download path changes)
+   */
+  updateDccHandler(dccHandler: DccHandler): void {
+    this.dccHandler = dccHandler;
   }
 }

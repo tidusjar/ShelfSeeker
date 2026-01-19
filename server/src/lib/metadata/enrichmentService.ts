@@ -1,6 +1,8 @@
 import { SearchResult, BookMetadata } from '../types.js';
 import { searchByTitleAuthor, searchByISBN } from './openLibraryService.js';
 import cache, { generateCacheKey } from './metadataCache.js';
+import { TIMEOUTS } from '../../constants.js';
+import { logger } from '../logger.js';
 
 /**
  * Enrichment Service
@@ -10,8 +12,6 @@ import cache, { generateCacheKey } from './metadataCache.js';
  * - Open Library API
  * - Graceful error handling
  */
-
-const ENRICHMENT_TIMEOUT = 10000; // 10 seconds per result
 
 /**
  * Enrich a single search result with metadata
@@ -31,7 +31,7 @@ export async function enrichSearchResult(
     // Check cache first
     const cachedMetadata = cache.get(cacheKey);
     if (cachedMetadata) {
-      console.log(`Cache hit for: ${result.title}`);
+      logger.info('Cache hit', { title: result.title });
       return {
         ...result,
         metadata: cachedMetadata,
@@ -41,7 +41,7 @@ export async function enrichSearchResult(
     // Fetch from API with timeout
     const metadata = await Promise.race([
       fetchMetadata(result.title, result.author),
-      timeout(ENRICHMENT_TIMEOUT),
+      timeout(TIMEOUTS.ENRICHMENT),
     ]);
 
     if (metadata) {
@@ -58,7 +58,7 @@ export async function enrichSearchResult(
     return result;
   } catch (error) {
     // Log error but don't fail the search
-    console.error(`Error enriching result for "${result.title}":`, error);
+    logger.error('Error enriching result', { title: result.title, error });
     return result;
   }
 }
@@ -73,7 +73,7 @@ export async function enrichSearchResults(
     return results;
   }
 
-  console.log(`Enriching ${results.length} search results...`);
+  logger.info('Enriching search results', { count: results.length });
 
   // Process all results in parallel
   const enrichmentPromises = results.map((result) =>
@@ -89,14 +89,14 @@ export async function enrichSearchResults(
       return result.value;
     } else {
       // If enrichment failed, return original result
-      console.error(`Enrichment failed for result ${index}:`, result.reason);
+      logger.error('Enrichment failed for result', { index, reason: result.reason });
       return results[index];
     }
   });
 
   // Log statistics
   const enrichedCount = enrichedResults.filter((r) => r.metadata).length;
-  console.log(`Enriched ${enrichedCount}/${results.length} results`);
+  logger.info('Enriched results', { enrichedCount, totalCount: results.length });
 
   return enrichedResults;
 }
@@ -154,6 +154,6 @@ export function clearCache() {
  */
 export function cleanupCache() {
   const removed = cache.cleanup();
-  console.log(`Removed ${removed} expired cache entries`);
+  logger.info('Removed expired cache entries', { count: removed });
   return removed;
 }

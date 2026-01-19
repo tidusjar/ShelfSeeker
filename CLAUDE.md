@@ -65,6 +65,34 @@ npm start        # Run compiled server from dist/
 - No search results: User prompted to wait additional 30 seconds
 - NZB provider failures: Caught gracefully, other providers continue
 
+## Security Considerations
+
+### File Transfer Security
+- All DCC filenames are sanitized to prevent path traversal attacks
+- Paths are validated before file operations to ensure they stay within target directories
+- No trusted bot whitelist - relies on aggressive filename sanitization
+- Dangerous characters `[<>:"|?*\x00-\x1f]` are replaced with underscores
+- Zip file entries are also sanitized to prevent zip slip attacks
+
+### Request Handling
+- IRC requests are queued to prevent race conditions
+- Request payload limited to 1MB (prevents large payload attacks)
+- Concurrent search/download requests processed sequentially (FIFO queue)
+- Each request tracked with unique UUID for proper timeout handling
+
+### Logging
+- Structured logging with winston
+- Logs stored in `server/logs/` directory (gitignored)
+- Error logs: `server/logs/error.log`
+- Combined logs: `server/logs/combined.log`
+- Log rotation: 5MB max per file, 5 files kept
+- Log level configurable via LOG_LEVEL environment variable
+
+### Error Transparency
+- API responses include `errors` array showing which sources failed
+- Users can see partial failures (e.g., IRC failed but NZB succeeded)
+- All errors logged to file with structured metadata
+
 ## Development Workflow
 
 ### Working on IRC Functionality
@@ -90,6 +118,7 @@ npm start        # Run compiled server from dist/
 - `web/dist/` - Compiled frontend bundle (gitignored)
 - `.tmp/` - Temporary search result files (gitignored)
 - `downloads/` - Downloaded ebook files (gitignored)
+- `server/logs/` - Application logs (gitignored)
 - `node_modules/` - Dependencies (gitignored, separate for root/web/server)
 
 ### Documentation

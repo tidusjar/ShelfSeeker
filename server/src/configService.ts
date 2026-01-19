@@ -3,6 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import type { NzbProvider, Downloader } from './types.js';
+import { TIMEOUTS } from './constants.js';
+import { logger } from './lib/logger.js';
 
 export interface IrcConfig {
   enabled: boolean;
@@ -63,9 +65,9 @@ const DEFAULT_CONFIG: AppConfig = {
       port: 6667,
       channel: '',
       searchCommand: '',
-      connectionTimeout: 30000,
-      searchTimeout: 30000,
-      downloadTimeout: 300000,
+      connectionTimeout: TIMEOUTS.IRC_CONNECTION,
+      searchTimeout: TIMEOUTS.IRC_SEARCH,
+      downloadTimeout: TIMEOUTS.IRC_DOWNLOAD,
     },
     torrent: {
       enabled: false,
@@ -108,7 +110,7 @@ export class ConfigService {
       if (!exists) {
         // Create with defaults
         this.db = await JSONFilePreset(this.configPath, DEFAULT_CONFIG);
-        console.log('✓ Created default configuration at', this.configPath);
+        logger.info('✓ Created default configuration at', { configPath: this.configPath });
         return;
       }
 
@@ -124,33 +126,33 @@ export class ConfigService {
 
         // Migrate old configs that don't have general section
         if (!data.general) {
-          console.log('  Migrating config: Adding general section');
+          logger.info('  Migrating config: Adding general section');
           data.general = DEFAULT_CONFIG.general;
           await this.db.write();
         }
 
         // Migrate old configs that don't have downloaders section
         if (!data.downloaders) {
-          console.log('  Migrating config: Adding downloaders section');
+          logger.info('  Migrating config: Adding downloaders section');
           data.downloaders = DEFAULT_CONFIG.downloaders;
           await this.db.write();
         }
       } catch (parseError) {
         // Config file is corrupted
-        console.warn('⚠ Config file corrupted, backing up and resetting to defaults');
+        logger.warn('⚠ Config file corrupted, backing up and resetting to defaults');
 
         // Backup corrupted file
         const backupPath = `${this.configPath}.backup`;
         fs.copyFileSync(this.configPath, backupPath);
-        console.log(`  Backup saved to ${backupPath}`);
+        logger.info('  Backup saved to', { backupPath });
 
         // Delete corrupted file and create new one
         fs.unlinkSync(this.configPath);
         this.db = await JSONFilePreset(this.configPath, DEFAULT_CONFIG);
-        console.log('✓ Reset to default configuration');
+        logger.info('✓ Reset to default configuration');
       }
     } catch (error) {
-      console.error('Failed to initialize configuration:', error);
+      logger.error('Failed to initialize configuration:', error);
       throw error;
     }
   }
@@ -277,7 +279,7 @@ export class ConfigService {
     try {
       this.db.data = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
       await this.db.write();
-      console.log('✓ Configuration reset to defaults');
+      logger.info('✓ Configuration reset to defaults');
     } catch (error) {
       if (error instanceof Error && error.message.includes('EACCES')) {
         throw new Error('Failed to reset configuration: Permission denied');
@@ -362,7 +364,7 @@ export class ConfigService {
     this.db.data.sources.nzb.indexers.push(newProvider);
     await this.db.write();
 
-    console.log(`✓ Added NZB provider: ${newProvider.name}`);
+    logger.info('✓ Added NZB provider', { providerName: newProvider.name });
     return newProvider;
   }
 
@@ -383,7 +385,7 @@ export class ConfigService {
     Object.assign(this.db.data.sources.nzb.indexers[index], updates);
     await this.db.write();
 
-    console.log(`✓ Updated NZB provider: ${this.db.data.sources.nzb.indexers[index].name}`);
+    logger.info('✓ Updated NZB provider', { providerName: this.db.data.sources.nzb.indexers[index].name });
   }
 
   /**
@@ -399,7 +401,7 @@ export class ConfigService {
     this.db.data.sources.nzb.indexers.splice(index, 1);
     await this.db.write();
 
-    console.log(`✓ Deleted NZB provider: ${providerName}`);
+    logger.info('✓ Deleted NZB provider', { providerName });
   }
 
   /**
@@ -508,7 +510,7 @@ export class ConfigService {
     this.db.data.downloaders.usenet.push(newDownloader);
     await this.db.write();
 
-    console.log(`✓ Added usenet downloader: ${newDownloader.name} (${newDownloader.type})`);
+    logger.info('✓ Added usenet downloader', { name: newDownloader.name, type: newDownloader.type });
     return newDownloader;
   }
 
@@ -541,7 +543,7 @@ export class ConfigService {
     this.db.data.downloaders.usenet[index] = updated;
     await this.db.write();
 
-    console.log(`✓ Updated usenet downloader: ${updated.name}`);
+    logger.info('✓ Updated usenet downloader', { name: updated.name });
     return updated;
   }
 
@@ -558,6 +560,6 @@ export class ConfigService {
     this.db.data.downloaders.usenet.splice(index, 1);
     await this.db.write();
 
-    console.log(`✓ Deleted usenet downloader: ${name}`);
+    logger.info('✓ Deleted usenet downloader', { name });
   }
 }

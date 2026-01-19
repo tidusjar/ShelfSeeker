@@ -2,6 +2,8 @@ import { EventEmitter } from 'events';
 import { Socket } from 'net';
 import { createWriteStream, WriteStream } from 'fs';
 import { join } from 'path';
+import { TIMEOUTS } from '../../constants.js';
+import { logger } from '../logger.js';
 
 /**
  * DCC SEND protocol handler
@@ -26,7 +28,7 @@ export class DccReceiver extends EventEmitter {
     const match = cleanMessage.match(/^DCC SEND (.+?) (\d+) (\d+)(?: (\d+))?$/);
     
     if (!match) {
-      console.log('[DCC] Failed to parse DCC SEND message:', cleanMessage);
+      logger.info('[DCC] Failed to parse DCC SEND message', { message: cleanMessage });
       return null;
     }
 
@@ -106,8 +108,8 @@ export class DccReceiver extends EventEmitter {
       // Connect to the DCC server
       socket.connect(port, ip);
 
-      // Timeout after 60 seconds of inactivity
-      socket.setTimeout(60000, () => {
+      // Timeout after inactivity
+      socket.setTimeout(TIMEOUTS.DCC_SOCKET, () => {
         socket.destroy();
         reject(new Error('DCC transfer timeout'));
       });

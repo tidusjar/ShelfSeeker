@@ -1,6 +1,7 @@
 import { IrcService } from './ircService.js';
 import { NzbService } from './nzbService.js';
 import { ConfigService } from './configService.js';
+import { logger } from './lib/logger.js';
 import type { SearchResult as IrcSearchResult } from './ircService.js';
 import type { NzbSearchResult } from './types.js';
 
@@ -19,8 +20,9 @@ export class SearchService {
    * @param query Search query string
    * @param enrich Whether to enrich results with metadata (default: false for performance)
    */
-  async search(query: string, enrich: boolean = false): Promise<UnifiedSearchResult[]> {
+  async search(query: string, enrich: boolean = false): Promise<{ results: UnifiedSearchResult[]; errors: string[] }> {
     const results: UnifiedSearchResult[] = [];
+    const errors: string[] = [];
 
     // Check IRC enabled status and connection
     const ircConfig = this.configService.getIrcConfig();
@@ -35,7 +37,13 @@ export class SearchService {
       throw new Error('No search sources available. Please enable IRC or add NZB providers.');
     }
 
-    console.log(`[SearchService] Searching: IRC=${ircEnabled}, NZB=${nzbEnabled} (${enabledNzbProviders.length} providers), enrich=${enrich}`);
+    logger.info('[SearchService] Starting search', { 
+      ircEnabled, 
+      nzbEnabled, 
+      nzbProviderCount: enabledNzbProviders.length, 
+      enrich,
+      query 
+    });
 
     // Launch parallel searches
     const searchPromises: Promise<UnifiedSearchResult[]>[] = [];
@@ -44,7 +52,9 @@ export class SearchService {
     if (ircEnabled) {
       searchPromises.push(
         this.ircService.search(query, enrich).catch(error => {
-          console.error('[SearchService] IRC search failed:', error.message);
+          const errorMsg = `IRC: ${error.message}`;
+          logger.error('[SearchService] IRC search failed', { query, error: error.message });
+          errors.push(errorMsg);
           return []; // Return empty array on failure
         })
       );
@@ -54,7 +64,9 @@ export class SearchService {
     if (nzbEnabled) {
       searchPromises.push(
         this.searchNzb(query, enabledNzbProviders, enrich).catch(error => {
-          console.error('[SearchService] NZB search failed:', error.message);
+          const errorMsg = `NZB: ${error.message}`;
+          logger.error('[SearchService] NZB search failed', { query, error: error.message });
+          errors.push(errorMsg);
           return []; // Return empty array on failure
         })
       );
@@ -73,9 +85,13 @@ export class SearchService {
       results.push(result);
     }
 
-    console.log(`[SearchService] Found ${results.length} total results`);
+    logger.info('[SearchService] Search complete', { 
+      resultCount: results.length, 
+      errorCount: errors.length,
+      query 
+    });
 
-    return results;
+    return { results, errors };
   }
 
   /**

@@ -1,4 +1,5 @@
 import { BookMetadata } from '../types.js';
+import { LIMITS } from '../../constants.js';
 
 /**
  * Metadata Cache
@@ -15,7 +16,7 @@ interface CachedEntry {
 class MetadataCache {
   private cache = new Map<string, CachedEntry>();
   private TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-  private maxSize = 10000; // Maximum number of entries
+  private maxSize = LIMITS.MAX_CACHE_SIZE;
 
   /**
    * Get metadata from cache

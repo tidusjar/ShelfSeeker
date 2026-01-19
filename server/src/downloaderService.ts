@@ -1,4 +1,6 @@
 import type { Downloader } from './types.js';
+import { TIMEOUTS } from './constants.js';
+import { logger } from './lib/logger.js';
 
 export class DownloaderService {
   /**
@@ -12,7 +14,7 @@ export class DownloaderService {
     try {
       // Fetch the NZB file content
       const nzbResponse = await fetch(nzbUrl, {
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(TIMEOUTS.API_REQUEST),
       });
 
       if (!nzbResponse.ok) {
@@ -52,7 +54,7 @@ export class DownloaderService {
           'Authorization': `Basic ${auth}`,
         },
         body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(TIMEOUTS.API_REQUEST),
       });
 
       if (!response.ok) {
@@ -70,7 +72,7 @@ export class DownloaderService {
         throw new Error('NZBGet rejected the NZB');
       }
 
-      console.log(`✓ Sent NZB to NZBGet: ${title} (ID: ${result.result})`);
+      logger.info('✓ Sent NZB to NZBGet', { title, id: result.result });
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to send to NZBGet: ${error.message}`);
@@ -124,7 +126,7 @@ export class DownloaderService {
       const response = await fetch(`${baseUrl}?${params.toString()}`, {
         method: 'GET',
         headers,
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(TIMEOUTS.API_REQUEST),
       });
 
       if (!response.ok) {
@@ -142,7 +144,7 @@ export class DownloaderService {
         throw new Error('SABnzbd rejected the NZB');
       }
 
-      console.log(`✓ Sent NZB to SABnzbd: ${title} (ID: ${result.nzo_ids[0]})`);
+      logger.info('✓ Sent NZB to SABnzbd', { title, id: result.nzo_ids[0] });
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to send to SABnzbd: ${error.message}`);
@@ -190,7 +192,7 @@ export class DownloaderService {
         'Authorization': `Basic ${auth}`,
       },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(TIMEOUTS.IRC_RETRY_DELAY),
     });
 
     if (!response.ok) {
@@ -240,7 +242,7 @@ export class DownloaderService {
     const response = await fetch(`${baseUrl}?${params.toString()}`, {
       method: 'GET',
       headers,
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(TIMEOUTS.IRC_RETRY_DELAY),
     });
 
     if (!response.ok) {

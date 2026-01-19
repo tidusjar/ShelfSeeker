@@ -59,3 +59,11 @@ export interface Downloader {
   category?: string;             // Default category in downloader (e.g., "books")
   priority?: number;             // Default priority (-100 to 100 for NZBGet, -2 to 2 for SABnzbd)
 }
+
+// API Response Types
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  errors?: string[];  // Array of errors from different sources (e.g., IRC, NZB)
+}

@@ -56,6 +56,7 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  errors?: string[];  // Array of errors from different sources (e.g., IRC, NZB)
 }
 
 export interface IrcConfig {

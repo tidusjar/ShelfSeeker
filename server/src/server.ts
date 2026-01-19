@@ -8,6 +8,8 @@ import { ConfigService } from './configService.js';
 import { NzbService } from './nzbService.js';
 import { SearchService } from './searchService.js';
 import { DownloaderService } from './downloaderService.js';
+import { logger } from './lib/logger.js';
+import { LIMITS } from './constants.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +19,7 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: LIMITS.MAX_REQUEST_PAYLOAD_SIZE }));
 
 // Initialize configuration service
 const configService = new ConfigService();
@@ -42,7 +44,7 @@ try {
   const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
   version = packageJson.version;
 } catch (error) {
-  console.error('Failed to load version from package.json:', error);
+  logger.error('Failed to load version from package.json', { error });
 }
 
 // Routes
@@ -100,8 +102,8 @@ app.post('/api/search', async (req, res) => {
     }
 
     // Use unified search service WITHOUT enrichment for fast results
-    const results = await searchService.search(query, false);
-    res.json({ success: true, data: results });
+    const { results, errors } = await searchService.search(query, false);
+    res.json({ success: true, data: results, errors });
   } catch (error) {
     res.json({ success: false, error: (error as Error).message });
   }
@@ -115,7 +117,7 @@ app.post('/api/enrich', async (req, res) => {
       return res.json({ success: false, error: 'Invalid results array' });
     }
 
-    console.log(`[Server] Enriching ${results.length} results...`);
+    logger.info('[Server] Enriching results', { resultCount: results.length });
 
     // Import enrichment service
     const { enrichSearchResults } = await import('./lib/metadata/enrichmentService.js');
@@ -231,12 +233,18 @@ app.post('/api/nzb/providers/:id/test', async (req, res) => {
       return res.json({ success: false, error: 'Provider not found' });
     }
 
-    console.log(`[Server] Testing NZB provider: ${provider.name} (enabled: ${provider.enabled})`);
+    logger.info('[Server] Testing NZB provider', { 
+      providerName: provider.name, 
+      enabled: provider.enabled 
+    });
 
     // Perform a test search (using a common term likely to return results)
     const results = await nzbService.search('ebook', [provider]);
 
-    console.log(`[Server] Test complete: ${results.length} results found`);
+    logger.info('[Server] NZB provider test complete', { 
+      providerName: provider.name, 
+      resultCount: results.length 
+    });
 
     res.json({
       success: true,
@@ -246,7 +254,7 @@ app.post('/api/nzb/providers/:id/test', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`[Server] Test failed:`, error);
+    logger.error('[Server] NZB provider test failed', { error });
     res.json({ success: false, error: (error as Error).message });
   }
 });
@@ -299,7 +307,7 @@ app.put('/api/config/irc', async (req, res) => {
     } catch (error) {
       reconnected = false;
       reconnectError = (error as Error).message;
-      console.error('Failed to reconnect with new config:', reconnectError);
+      logger.error('[Server] Failed to reconnect with new IRC config', { error: reconnectError });
     }
 
     res.json({
@@ -361,7 +369,7 @@ app.post('/api/config/reset', async (req, res) => {
     } catch (error) {
       reconnected = false;
       reconnectError = (error as Error).message;
-      console.error('Failed to reconnect after reset:', reconnectError);
+      logger.error('[Server] Failed to reconnect after config reset', { error: reconnectError });
     }
 
     res.json({
@@ -506,19 +514,19 @@ if (process.env.NODE_ENV === 'production') {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`✓ API server running on http://localhost:${PORT}`);
-  console.log(`✓ CORS enabled for all origins`);
+  logger.info('API server started', { port: PORT });
+  logger.info('CORS enabled for all origins');
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\nShutting down gracefully...');
+  logger.info('Shutting down gracefully (SIGINT)');
   ircService.disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('\nShutting down gracefully...');
+  logger.info('Shutting down gracefully (SIGTERM)');
   ircService.disconnect();
   process.exit(0);
 });
