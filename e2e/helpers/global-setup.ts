@@ -12,20 +12,26 @@ export default async function globalSetup() {
   
   try {
     // Start mock servers
-    const { ircPort, nzbPort } = await manager.startAll();
+    const { ircPort, nzbPort, openLibraryPort } = await manager.startAll();
 
     // Store ports in environment for tests and server to use
     process.env.MOCK_IRC_PORT = String(ircPort);
     process.env.MOCK_NZB_PORT = String(nzbPort);
+    process.env.MOCK_OPENLIBRARY_PORT = String(openLibraryPort);
     process.env.TEST_MODE = 'true';
 
     // Configure server to use mock IRC
     process.env.IRC_HOST = 'localhost';
     process.env.IRC_PORT = String(ircPort);
     
+    // Configure server to use mock OpenLibrary
+    process.env.OPENLIBRARY_BASE_URL = `http://localhost:${openLibraryPort}`;
+    process.env.OPENLIBRARY_COVERS_URL = `http://localhost:${openLibraryPort}`;
+    
     console.log('\n✓ Mock servers started successfully');
     console.log(`  IRC Port: ${ircPort}`);
     console.log(`  NZB Port: ${nzbPort}`);
+    console.log(`  OpenLibrary Port: ${openLibraryPort}`);
 
     // Create a MINIMAL config file for the server to use during tests
     // Tests will configure IRC and NZB providers through the UI

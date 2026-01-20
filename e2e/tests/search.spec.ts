@@ -20,8 +20,8 @@ test.describe('Search Flow', () => {
 
     // Verify first result has expected data
     const firstResult = await resultsPage.getResult(0);
-    expect(firstResult.title).toContain('Frank Herbert');
-    expect(firstResult.author).toContain('Dune');
+    expect(firstResult.title).toContain('Dune');
+    expect(firstResult.author).toContain('Frank Herbert');
     expect(firstResult.fileType).toMatch(/epub|pdf/i);
     expect(firstResult.size).toContain('MB');
   });
@@ -47,6 +47,7 @@ test.describe('Search Flow', () => {
 
     // Second search
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await homePage.search('brandon sanderson');
     await resultsPage.waitForResults();
     expect(await resultsPage.getResultCount()).toBeGreaterThan(0);

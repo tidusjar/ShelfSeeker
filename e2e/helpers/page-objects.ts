@@ -130,6 +130,53 @@ export class SearchResultsPage {
   }
 
   /**
+   * Get enriched metadata for a result at specific index
+   */
+  async getEnrichedMetadata(index: number) {
+    const card = this.page.locator('[data-testid="search-result-card"]').nth(index);
+    
+    // Wait a bit for enrichment to complete
+    await this.page.waitForTimeout(2000);
+    
+    return {
+      hasCover: await card.locator('[data-testid="book-cover-image"]').isVisible().catch(() => false),
+      hasRating: await card.locator('[data-testid="book-rating"]').isVisible().catch(() => false),
+      hasPublisher: await card.locator('[data-testid="book-publisher"]').isVisible().catch(() => false),
+      hasSubjects: await card.locator('[data-testid="book-subjects"]').isVisible().catch(() => false),
+      rating: (await card.locator('[data-testid="book-rating"]').textContent().catch(() => '')) || '',
+      publisher: (await card.locator('[data-testid="book-publisher"]').textContent().catch(() => '')) || '',
+      subjects: (await card.locator('[data-testid="book-subjects"]').textContent().catch(() => '')) || ''
+    };
+  }
+
+  /**
+   * Wait for enrichment to complete by monitoring network response
+   */
+  async waitForEnrichment(timeout: number = 10000): Promise<void> {
+    // Wait for the enrichment API response (separate from search)
+    try {
+      await this.page.waitForResponse(
+        response => response.url().includes('/api/enrich') && response.status() === 200,
+        { timeout }
+      );
+      // Give a small buffer for the UI to update with enriched data
+      await this.page.waitForTimeout(300);
+    } catch {
+      console.log('No enrichment response detected');
+    }
+  }
+
+  /**
+   * Check if a result at index is enriched (has metadata)
+   */
+  async isResultEnriched(index: number): Promise<boolean> {
+    const card = this.page.locator('[data-testid="search-result-card"]').nth(index);
+    const hasCover = await card.locator('[data-testid="book-cover-image"]').isVisible().catch(() => false);
+    const hasMetadata = await card.locator('[data-testid="book-metadata"]').isVisible().catch(() => false);
+    return hasCover || hasMetadata;
+  }
+
+  /**
    * Download result at index
    */
   async downloadResult(index: number): Promise<void> {

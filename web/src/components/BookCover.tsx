@@ -31,7 +31,7 @@ export default function BookCover({ metadata, title, size = 'medium' }: BookCove
   const showImage = coverUrl && !imageError;
 
   return (
-    <div className={`book-cover book-cover-${size}`}>
+    <div className={`book-cover book-cover-${size}`} data-testid="book-cover">
       {showImage ? (
         <>
           {imageLoading && (
@@ -43,6 +43,7 @@ export default function BookCover({ metadata, title, size = 'medium' }: BookCove
             src={coverUrl}
             alt={`Cover of ${title}`}
             className="book-cover-image"
+            data-testid="book-cover-image"
             onLoad={() => setImageLoading(false)}
             onError={() => {
               setImageError(true);
@@ -52,7 +53,7 @@ export default function BookCover({ metadata, title, size = 'medium' }: BookCove
           />
         </>
       ) : (
-        <div className="book-cover-placeholder">
+        <div className="book-cover-placeholder" data-testid="book-cover-placeholder">
           <svg
             className="book-icon"
             viewBox="0 0 24 24"

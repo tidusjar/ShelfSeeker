@@ -83,10 +83,6 @@ export async function configureIrcForTest(page: Page): Promise<void> {
     searchCommand: '@search'
   });
   await settingsPage.goBack();
-  
-  // Wait for the page to settle and for status to poll
-  // The App polls status every 5 seconds, so wait at least 6 seconds
-  await page.waitForTimeout(6000);
 }
 
 /**
