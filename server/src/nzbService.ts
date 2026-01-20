@@ -231,7 +231,9 @@ export class NzbService {
    */
   private extractMetadata(title: string): { title: string; author: string; fileType: string } {
 
+    logger.debug('[NzbService] Parsing NZB title', { title });
     const parsed = NZBFilenameParser.parse(title);
+    logger.debug('[NzbService] Parser result', { parsed });
 
     // Convert empty author to "Unknown" for NZB results (maintains backward compatibility)
     const author = parsed.author || 'Unknown';
