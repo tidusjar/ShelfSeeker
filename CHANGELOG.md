@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.8](https://github.com/tidusjar/ShelfSeeker/compare/v0.1.7...v0.1.8) (2026-01-20)
+
+
+### Bug Fixes
+
+* enrichment for nzb search results ([943f9a7](https://github.com/tidusjar/ShelfSeeker/commit/943f9a734435ec1f7a8a89fd4846f8374f93edbb))
+* enrichment for nzb search results ([588aef0](https://github.com/tidusjar/ShelfSeeker/commit/588aef05df53dad590f9dc420eb5b123f7c46d47))
+
 ### [0.1.7](https://github.com/tidusjar/ShelfSeeker/compare/v0.1.6...v0.1.7) (2026-01-19)
 
 

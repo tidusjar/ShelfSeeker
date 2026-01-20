@@ -1,6 +1,6 @@
 {
   "name": "shelfseeker",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Multi-source ebook search and download web application",
   "type": "module",
   "scripts": {
