@@ -111,8 +111,8 @@ describe('NzbService', () => {
         source: 'nzb',
         sourceProvider: 'Test Provider',
         providerId: 'test-provider-1',
-        title: 'Author Name-Book Title',
-        author: 'Unknown',
+        title: 'Book Title',
+        author: 'Author Name',
         fileType: 'epub',
         size: '1.00 MB',
         nzbUrl: 'https://api.test.com/download/123'

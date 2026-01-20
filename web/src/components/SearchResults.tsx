@@ -225,7 +225,7 @@ function SearchResults({
       abortController.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, [currentPage, results]);
 
   const formatFileSize = (size: string) => size;
 
