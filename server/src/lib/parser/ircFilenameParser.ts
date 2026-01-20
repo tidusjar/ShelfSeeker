@@ -174,13 +174,10 @@ export class IRCFilenameParser {
         return { author: first, title: second };
       }
 
-      // If both look like authors, prefer the shorter one (usually the actual author)
+      // If both look like authors, prefer the FIRST as author
+      // IRC format is typically "Author - Title", so first part is usually the author
       if (firstLooksLikeAuthor && secondLooksLikeAuthor) {
-        if (first.length <= second.length) {
-          return { author: first, title: second };
-        } else {
-          return { author: second, title: first };
-        }
+        return { author: first, title: second };
       }
 
       // Check if second part looks like an author

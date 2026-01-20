@@ -145,7 +145,7 @@ test.describe('Search Result Enrichment', () => {
 
     expect(metadata.hasCover).toBe(true);
     expect(metadata.hasRating).toBe(true);
-    expect(metadata.rating).toContain('4.6'); // Mock rating is 4.65
+    expect(metadata.rating).toContain('4.7'); // Mock rating is 4.65, rounds to 4.7
     expect(metadata.hasSubjects).toBe(true);
     expect(metadata.subjects.toLowerCase()).toMatch(/fantasy|epic fantasy/);
   });

@@ -150,13 +150,20 @@ export class SearchResultsPage {
   }
 
   /**
-   * Wait for enrichment to complete for visible results
+   * Wait for enrichment to complete by monitoring network response
    */
-  async waitForEnrichment(timeout: number = 15000): Promise<void> {
-    // Wait for at least one cover image to appear
-    await this.page.waitForSelector('[data-testid="book-cover-image"]', { timeout }).catch(() => {
-      console.log('No enrichment detected - covers not loaded');
-    });
+  async waitForEnrichment(timeout: number = 10000): Promise<void> {
+    // Wait for the enrichment API response (separate from search)
+    try {
+      await this.page.waitForResponse(
+        response => response.url().includes('/api/enrich') && response.status() === 200,
+        { timeout }
+      );
+      // Give a small buffer for the UI to update with enriched data
+      await this.page.waitForTimeout(300);
+    } catch {
+      console.log('No enrichment response detected');
+    }
   }
 
   /**

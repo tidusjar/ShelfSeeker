@@ -58,8 +58,12 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
       env: {
+        ...process.env,
         NODE_ENV: 'test',
-        CONFIG_PATH: path.join(__dirname, '..', 'server', 'config.test.json')
+        CONFIG_PATH: path.join(__dirname, '..', 'server', 'config.test.json'),
+        // Fixed port for mock OpenLibrary server (matches MockOpenLibraryServer default)
+        OPENLIBRARY_BASE_URL: 'http://localhost:8080',
+        OPENLIBRARY_COVERS_URL: 'http://localhost:8080'
       }
     }
   ]

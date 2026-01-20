@@ -411,12 +411,13 @@ function SearchResults({
                 data-testid="search-result-card"
               >
                 <div className="flex gap-5 items-start">
-                  <div className="w-16 h-24 shrink-0 bg-slate-200 dark:bg-[#232f48] rounded-lg overflow-hidden shadow-sm flex items-center justify-center">
+                  <div className="w-16 h-24 shrink-0 bg-slate-200 dark:bg-[#232f48] rounded-lg overflow-hidden shadow-sm flex items-center justify-center" data-testid="book-cover">
                     {result.metadata?.coverUrl ? (
-                      <img 
-                        src={result.metadata.coverUrl} 
+                      <img
+                        src={result.metadata.coverUrl}
                         alt={result.title}
                         className="w-full h-full object-cover"
+                        data-testid="book-cover-image"
                         onError={(e) => {
                           // Fallback to icon if image fails to load
                           e.currentTarget.style.display = 'none';
@@ -424,7 +425,7 @@ function SearchResults({
                         }}
                       />
                     ) : null}
-                    <span className={`material-symbols-outlined text-slate-400 text-4xl ${result.metadata?.coverUrl ? 'hidden' : ''}`}>book</span>
+                    <span className={`material-symbols-outlined text-slate-400 text-4xl ${result.metadata?.coverUrl ? 'hidden' : ''}`} data-testid="book-cover-placeholder">book</span>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <h3 className="text-slate-900 dark:text-white text-lg font-bold group-hover:text-primary transition-colors" data-testid="result-title">
@@ -453,15 +454,21 @@ function SearchResults({
                         {result.sourceProvider}
                       </span>
                       {result.metadata?.publishDate && (
-                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1">
+                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1" data-testid="book-publisher">
                           <span className="material-symbols-outlined text-sm">calendar_month</span>
-                          {result.metadata.publishDate}
+                          {result.metadata.publisher ? `${result.metadata.publisher}, ` : ''}{result.metadata.publishDate}
                         </span>
                       )}
                       {result.metadata?.averageRating && (
-                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1">
+                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1" data-testid="book-rating">
                           <span className="material-symbols-outlined text-sm">star</span>
-                          {result.metadata.averageRating.toFixed(1)}
+                          {result.metadata.averageRating.toFixed(1)}{result.metadata.ratingsCount ? ` (${result.metadata.ratingsCount.toLocaleString()} ratings)` : ''}
+                        </span>
+                      )}
+                      {result.metadata?.subjects && result.metadata.subjects.length > 0 && (
+                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1" data-testid="book-subjects">
+                          <span className="material-symbols-outlined text-sm">label</span>
+                          {result.metadata.subjects.slice(0, 3).join(', ')}
                         </span>
                       )}
                     </div>
