@@ -9,7 +9,10 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
-    "test:e2e:codegen": "playwright codegen http://localhost:5173"
+    "test:e2e:codegen": "playwright codegen http://localhost:5173",
+    "test:enrichment": "playwright test enrichment.spec.ts",
+    "test:enrichment:ui": "playwright test enrichment.spec.ts --ui",
+    "test:enrichment:debug": "playwright test enrichment.spec.ts --debug"
   },
   "keywords": [
     "e2e",

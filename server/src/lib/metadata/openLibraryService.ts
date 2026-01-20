@@ -9,9 +9,13 @@ import { logger } from '../logger.js';
  * Documentation: https://openlibrary.org/developers/api
  */
 
-const OPEN_LIBRARY_SEARCH_URL = 'https://openlibrary.org/search.json';
-const OPEN_LIBRARY_BOOKS_URL = 'https://openlibrary.org/api/books';
-const OPEN_LIBRARY_COVERS_URL = 'https://covers.openlibrary.org/b';
+// Allow override for testing
+const OPEN_LIBRARY_BASE_URL = process.env.OPENLIBRARY_BASE_URL || 'https://openlibrary.org';
+const OPEN_LIBRARY_COVERS_BASE_URL = process.env.OPENLIBRARY_COVERS_URL || 'https://covers.openlibrary.org';
+
+const OPEN_LIBRARY_SEARCH_URL = `${OPEN_LIBRARY_BASE_URL}/search.json`;
+const OPEN_LIBRARY_BOOKS_URL = `${OPEN_LIBRARY_BASE_URL}/api/books`;
+const OPEN_LIBRARY_COVERS_URL = `${OPEN_LIBRARY_COVERS_BASE_URL}/b`;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // Start with 1 second
 

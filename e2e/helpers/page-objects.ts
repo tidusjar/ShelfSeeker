@@ -130,6 +130,46 @@ export class SearchResultsPage {
   }
 
   /**
+   * Get enriched metadata for a result at specific index
+   */
+  async getEnrichedMetadata(index: number) {
+    const card = this.page.locator('[data-testid="search-result-card"]').nth(index);
+    
+    // Wait a bit for enrichment to complete
+    await this.page.waitForTimeout(2000);
+    
+    return {
+      hasCover: await card.locator('[data-testid="book-cover-image"]').isVisible().catch(() => false),
+      hasRating: await card.locator('[data-testid="book-rating"]').isVisible().catch(() => false),
+      hasPublisher: await card.locator('[data-testid="book-publisher"]').isVisible().catch(() => false),
+      hasSubjects: await card.locator('[data-testid="book-subjects"]').isVisible().catch(() => false),
+      rating: (await card.locator('[data-testid="book-rating"]').textContent().catch(() => '')) || '',
+      publisher: (await card.locator('[data-testid="book-publisher"]').textContent().catch(() => '')) || '',
+      subjects: (await card.locator('[data-testid="book-subjects"]').textContent().catch(() => '')) || ''
+    };
+  }
+
+  /**
+   * Wait for enrichment to complete for visible results
+   */
+  async waitForEnrichment(timeout: number = 15000): Promise<void> {
+    // Wait for at least one cover image to appear
+    await this.page.waitForSelector('[data-testid="book-cover-image"]', { timeout }).catch(() => {
+      console.log('No enrichment detected - covers not loaded');
+    });
+  }
+
+  /**
+   * Check if a result at index is enriched (has metadata)
+   */
+  async isResultEnriched(index: number): Promise<boolean> {
+    const card = this.page.locator('[data-testid="search-result-card"]').nth(index);
+    const hasCover = await card.locator('[data-testid="book-cover-image"]').isVisible().catch(() => false);
+    const hasMetadata = await card.locator('[data-testid="book-metadata"]').isVisible().catch(() => false);
+    return hasCover || hasMetadata;
+  }
+
+  /**
    * Download result at index
    */
   async downloadResult(index: number): Promise<void> {

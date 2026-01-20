@@ -26,7 +26,8 @@ API Server (localhost:3001)
     ↓
 Mock Servers
     ├─ Mock IRC Server (TCP, IRC protocol)
-    └─ Mock Newznab Server (HTTP, XML)
+    ├─ Mock Newznab Server (HTTP, XML)
+    └─ Mock OpenLibrary Server (HTTP, JSON)
 ```
 
 ## Prerequisites
@@ -54,6 +55,16 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
+### Run enrichment tests only
+```bash
+npm run test:enrichment
+```
+
+### Run enrichment tests with UI
+```bash
+npm run test:enrichment:ui
+```
+
 ### Run tests in headed mode (see the browser)
 ```bash
 npm run test:e2e:headed
@@ -77,12 +88,17 @@ e2e/
 │   ├── smoke.spec.ts            # Basic sanity checks
 │   ├── search.spec.ts           # Search functionality
 │   ├── download.spec.ts         # Download flows
-│   └── error-handling.spec.ts   # Error scenarios
+│   ├── settings.spec.ts         # Settings configuration
+│   └── enrichment.spec.ts       # Search result enrichment with OpenLibrary
 ├── mocks/
 │   ├── irc-server.ts            # Mock IRC server
 │   ├── newznab-server.ts        # Mock Newznab server
+│   ├── openlibrary-server.ts    # Mock OpenLibrary API server
 │   ├── server-manager.ts        # Coordinates mock servers
 │   └── fixtures/                # Test data
+│       ├── irc-responses.ts     # IRC search responses
+│       ├── newznab-results.ts   # NZB search responses
+│       └── openlibrary-responses.ts  # OpenLibrary metadata
 ├── helpers/
 │   ├── page-objects.ts          # Page Object Models
 │   ├── test-helpers.ts          # Utility functions
@@ -138,6 +154,15 @@ export const IRC_SEARCH_FIXTURES = {
 - Validates API key (`test-api-key`)
 - Supports search and download endpoints
 
+### Mock OpenLibrary Server
+- HTTP server mimicking OpenLibrary API
+- Provides enrichment metadata for search results
+- Endpoints:
+  - `/search.json` - Search by title/author
+  - `/b/id/{id}-{size}.jpg` - Cover images
+  - `/api/books` - ISBN lookup
+- Returns data from `openlibrary-responses.ts` fixtures
+
 ## Troubleshooting
 
 ### Tests fail to start
@@ -184,17 +209,23 @@ Current tests cover:
 - ✅ Error handling
 - ✅ Connection status
 - ✅ Rapid search requests
+- ✅ Settings configuration (IRC and NZB)
+- ✅ Search result enrichment with OpenLibrary
+- ✅ Book cover display
+- ✅ Rating and metadata display
+- ✅ Page-by-page enrichment
+- ✅ Enrichment caching
 
 ## Next Steps
 
 Potential additions:
-- Settings configuration tests
 - NZB search integration tests
 - Multi-source search tests (IRC + NZB)
 - Filter functionality tests
-- Pagination tests
+- Pagination tests with enrichment
 - Mobile viewport tests
 - Multi-browser tests (Firefox, Safari)
+- Performance tests for enrichment
 
 ## Resources
 

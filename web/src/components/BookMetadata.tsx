@@ -18,7 +18,7 @@ export const BookMetadata: React.FC<BookMetadataProps> = ({ metadata }) => {
     const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
 
     return (
-      <div className="book-rating">
+      <div className="book-rating" data-testid="book-rating">
         <div className="stars">
           {[...Array(fullStars)].map((_, i) => (
             <span key={`full-${i}`} className="star star-full">★</span>
@@ -57,7 +57,7 @@ export const BookMetadata: React.FC<BookMetadataProps> = ({ metadata }) => {
     if (parts.length === 0) return null;
 
     return (
-      <div className="book-publish-info">
+      <div className="book-publish-info" data-testid="book-publisher">
         {parts.join(' • ')}
       </div>
     );
@@ -94,7 +94,7 @@ export const BookMetadata: React.FC<BookMetadataProps> = ({ metadata }) => {
     const displaySubjects = metadata.subjects.slice(0, 5);
 
     return (
-      <div className="book-subjects">
+      <div className="book-subjects" data-testid="book-subjects">
         {displaySubjects.map((subject, index) => (
           <span key={index} className="subject-tag">
             {subject}
@@ -105,7 +105,7 @@ export const BookMetadata: React.FC<BookMetadataProps> = ({ metadata }) => {
   };
 
   return (
-    <div className="book-metadata">
+    <div className="book-metadata" data-testid="book-metadata">
       {renderRating()}
       {renderPublishInfo()}
       {renderDescription()}

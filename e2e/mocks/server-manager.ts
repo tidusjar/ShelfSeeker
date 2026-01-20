@@ -1,5 +1,6 @@
 import { MockIrcServer } from './irc-server.js';
 import { MockNewznabServer } from './newznab-server.js';
+import { MockOpenLibraryServer } from './openlibrary-server.js';
 
 /**
  * Test Server Manager
@@ -8,34 +9,40 @@ import { MockNewznabServer } from './newznab-server.js';
 export class TestServerManager {
   private ircServer: MockIrcServer;
   private newznabServer: MockNewznabServer;
+  private openLibraryServer: MockOpenLibraryServer;
   private ircPort: number = 0;
   private nzbPort: number = 0;
+  private openLibraryPort: number = 0;
 
   constructor() {
     this.ircServer = new MockIrcServer();
     this.newznabServer = new MockNewznabServer();
+    this.openLibraryServer = new MockOpenLibraryServer(8080);
   }
 
   /**
    * Start all mock servers
    */
-  async startAll(): Promise<{ ircPort: number; nzbPort: number }> {
+  async startAll(): Promise<{ ircPort: number; nzbPort: number; openLibraryPort: number }> {
     console.log('[TestServerManager] Starting mock servers...');
     
     // Start servers in parallel
-    const [ircPort, nzbPort] = await Promise.all([
+    const [ircPort, nzbPort, openLibraryPort] = await Promise.all([
       this.ircServer.start(),
-      this.newznabServer.start()
+      this.newznabServer.start(),
+      this.openLibraryServer.start()
     ]);
 
     this.ircPort = ircPort;
     this.nzbPort = nzbPort;
+    this.openLibraryPort = openLibraryPort;
 
     console.log('[TestServerManager] All servers started');
     console.log(`  - IRC: localhost:${ircPort}`);
     console.log(`  - NZB: http://localhost:${nzbPort}`);
+    console.log(`  - OpenLibrary: http://localhost:${openLibraryPort}`);
 
-    return { ircPort, nzbPort };
+    return { ircPort, nzbPort, openLibraryPort };
   }
 
   /**
@@ -46,7 +53,8 @@ export class TestServerManager {
     
     await Promise.all([
       this.ircServer.stop(),
-      this.newznabServer.stop()
+      this.newznabServer.stop(),
+      this.openLibraryServer.stop()
     ]);
 
     console.log('[TestServerManager] All servers stopped');
@@ -67,6 +75,13 @@ export class TestServerManager {
   }
 
   /**
+   * Get OpenLibrary server port
+   */
+  getOpenLibraryPort(): number {
+    return this.openLibraryPort;
+  }
+
+  /**
    * Get configuration for connecting to mock servers
    */
   getConfig() {
@@ -74,7 +89,8 @@ export class TestServerManager {
       ircServer: 'localhost',
       ircPort: this.ircPort,
       nzbUrl: `http://localhost:${this.nzbPort}`,
-      nzbApiKey: 'test-api-key'
+      nzbApiKey: 'test-api-key',
+      openLibraryUrl: `http://localhost:${this.openLibraryPort}`
     };
   }
 }
