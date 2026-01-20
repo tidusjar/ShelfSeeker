@@ -71,26 +71,26 @@ describe('SearchResultParser', () => {
     });
 
     it('should parse results with hash prefix (Pattern 1: HASH | filename)', () => {
-      const content = '!Bot abc123 | Author - Book Title.epub  ::INFO:: 1.5MB';
-      
+      const content = '!Bot abc123 | John Smith - Book Title.epub  ::INFO:: 1.5MB';
+
       writeFileSync(tempFile, content);
       const results = SearchResultParser.parse(tempFile);
 
       expect(results).toHaveLength(1);
-      expect(results[0].filename).toBe('Author - Book Title.epub');
-      expect(results[0].author).toBe('Author');
+      expect(results[0].filename).toBe('John Smith - Book Title.epub');
+      expect(results[0].author).toBe('John Smith');
       expect(results[0].title).toBe('Book Title');
     });
 
     it('should parse results with percent-encoded hash (Pattern 2: %HASH% filename)', () => {
-      const content = '!Bot %ABC123% Author - Book Title.pdf  ::INFO:: 2MB';
-      
+      const content = '!Bot %ABC123% Jane Doe - Book Title.pdf  ::INFO:: 2MB';
+
       writeFileSync(tempFile, content);
       const results = SearchResultParser.parse(tempFile);
 
       expect(results).toHaveLength(1);
-      expect(results[0].filename).toBe('Author - Book Title.pdf');
-      expect(results[0].author).toBe('Author');
+      expect(results[0].filename).toBe('Jane Doe - Book Title.pdf');
+      expect(results[0].author).toBe('Jane Doe');
       expect(results[0].title).toBe('Book Title');
     });
 

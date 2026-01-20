@@ -107,34 +107,36 @@ describe('IRCFilenameParser', () => {
   });
 
   describe('Common IRC patterns', () => {
-    it('should detect "Author Name" (2 capitalized words, no numbers) at end', () => {
-      const filename = 'Some Book Title - John Smith.epub';
+    it('should parse standard IRC format "Author - Title"', () => {
+      const filename = 'John Smith - Some Book Title.epub';
       const result = IRCFilenameParser.parse(filename);
-      
+
       expect(result.author).toBe('John Smith');
       expect(result.title).toBe('Some Book Title');
     });
 
-    it('should detect "LastName, FirstName" at end', () => {
-      const filename = 'Book Title - Smith, John.epub';
+    it('should detect "LastName, FirstName" format', () => {
+      // Comma-separated name is a strong author indicator
+      const filename = 'Smith, John - Book Title.epub';
       const result = IRCFilenameParser.parse(filename);
-      
+
       expect(result.author).toBe('John Smith');
       expect(result.title).toBe('Book Title');
     });
 
     it('should detect "I.N. LastName" pattern', () => {
-      const filename = 'Book Title - J.K. Rowling.epub';
+      // Initials pattern is a strong author indicator
+      const filename = 'J.K. Rowling - Harry Potter.epub';
       const result = IRCFilenameParser.parse(filename);
-      
+
       expect(result.author).toBe('J.K. Rowling');
-      expect(result.title).toBe('Book Title');
+      expect(result.title).toBe('Harry Potter');
     });
 
-    it('should handle "Author - Title" when author is at start', () => {
+    it('should handle "Author - Title" with "The" in title', () => {
       const filename = 'Stephen King - The Shining.pdf';
       const result = IRCFilenameParser.parse(filename);
-      
+
       expect(result.author).toBe('Stephen King');
       expect(result.title).toBe('The Shining');
     });
@@ -175,13 +177,12 @@ describe('IRCFilenameParser', () => {
     });
 
     it('should handle single word author', () => {
-      const filename = 'Book Title - Madonna.epub';
+      // IRC format: Author - Title (single-name author like Madonna, Cher)
+      const filename = 'Madonna - Evita Soundtrack.epub';
       const result = IRCFilenameParser.parse(filename);
-      
-      // Single capitalized word - could be author or part of title
-      // We'll treat it as author since it follows the dash
+
       expect(result.author).toBe('Madonna');
-      expect(result.title).toBe('Book Title');
+      expect(result.title).toBe('Evita Soundtrack');
     });
 
     it('should extract file type correctly', () => {

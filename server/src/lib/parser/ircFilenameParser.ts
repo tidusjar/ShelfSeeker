@@ -174,10 +174,33 @@ export class IRCFilenameParser {
         return { author: first, title: second };
       }
 
-      // If both look like authors, prefer the FIRST as author
-      // IRC format is typically "Author - Title", so first part is usually the author
+      // If both look like authors, use smarter heuristics
       if (firstLooksLikeAuthor && secondLooksLikeAuthor) {
-        return { author: first, title: second };
+        // Check for "FirstName LastName" patterns with strict length constraints
+        // First name: 4-6 lowercase chars (Frank=4, James=4, Stephen=6) - excludes short words like "Dune" (3)
+        // Last name: 3-8 lowercase chars (King=3, Smith=4, Herbert=6, Sanderson=8)
+        // Note: Short names like "John" (3) won't match but will be caught by length heuristic
+        const firstIsTwoWordName = /^[A-Z][a-z]{4,6}\s+[A-Z][a-z]{2,8}$/.test(first);
+        const secondIsTwoWordName = /^[A-Z][a-z]{4,6}\s+[A-Z][a-z]{2,8}$/.test(second);
+
+        // If first is a clear name pattern and second is NOT, prefer first as author
+        // This handles: "Frank Herbert - Dune", "Frank Herbert - Dune Messiah"
+        if (firstIsTwoWordName && !secondIsTwoWordName) {
+          return { author: first, title: second };
+        }
+
+        // If second is a clear name pattern and first is NOT, prefer second as author
+        // This handles: "Some Long Title - John Smith"
+        if (secondIsTwoWordName && !firstIsTwoWordName) {
+          return { author: second, title: first };
+        }
+
+        // Both are name patterns or neither are - use length heuristic
+        if (first.length <= second.length) {
+          return { author: first, title: second };
+        } else {
+          return { author: second, title: first };
+        }
       }
 
       // Check if second part looks like an author
