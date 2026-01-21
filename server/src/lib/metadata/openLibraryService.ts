@@ -21,10 +21,14 @@ const RETRY_DELAY = 1000; // Start with 1 second
 
 /**
  * Search for a book by title and author
+ * @param title - Book title
+ * @param author - Author name
+ * @param includeWorkDetails - If true, fetch Works API for full description/series
  */
 export async function searchByTitleAuthor(
   title: string,
-  author: string
+  author: string,
+  includeWorkDetails: boolean = false
 ): Promise<BookMetadata | null> {
   if (!title) {
     return null;
@@ -55,7 +59,18 @@ export async function searchByTitleAuthor(
     }
 
     const book = data.docs[0];
-    return parseSearchResult(book);
+    const metadata = parseSearchResult(book);
+    
+    // Optionally fetch full work details
+    if (includeWorkDetails && metadata.openLibraryKey) {
+      const workDetails = await fetchWorkDetails(metadata.openLibraryKey);
+      if (workDetails) {
+        // Merge work details into metadata
+        Object.assign(metadata, workDetails);
+      }
+    }
+    
+    return metadata;
   } catch (error) {
     logger.error('Error fetching from Open Library:', error);
     return null;
@@ -98,6 +113,90 @@ export async function searchByISBN(isbn: string): Promise<BookMetadata | null> {
     logger.error('Error fetching from Open Library by ISBN:', error);
     return null;
   }
+}
+
+/**
+ * Fetch detailed metadata from Works API
+ * @param workKey - The Open Library work key (e.g., "OL82563W" or "/works/OL82563W")
+ * @returns Partial metadata from Works API or null on error
+ */
+export async function fetchWorkDetails(workKey: string): Promise<Partial<BookMetadata> | null> {
+  if (!workKey) {
+    return null;
+  }
+
+  try {
+    // Clean work key (handle both "OL82563W" and "/works/OL82563W")
+    const cleanKey = workKey.replace('/works/', '');
+    const url = `${OPEN_LIBRARY_BASE_URL}/works/${cleanKey}.json`;
+    
+    const response = await fetchWithRetry(url);
+    
+    if (!response.ok) {
+      logger.warn('Works API error', { status: response.status, workKey });
+      return null;
+    }
+
+    const work = await response.json();
+    return parseWorkDetails(work);
+  } catch (error) {
+    logger.error('Error fetching from Works API:', error);
+    return null;
+  }
+}
+
+/**
+ * Parse work data from Open Library Works API
+ * @param work - Raw work object from API
+ * @returns Partial metadata with Works-specific fields
+ */
+function parseWorkDetails(work: any): Partial<BookMetadata> {
+  const details: Partial<BookMetadata> = {};
+  
+  // Description (can be string or object with {value: "...", type: "..."})
+  if (work.description) {
+    if (typeof work.description === 'string') {
+      details.description = work.description;
+      details.descriptionSource = 'works';
+    } else if (work.description.value) {
+      details.description = work.description.value;
+      details.descriptionSource = 'works';
+    }
+  }
+  
+  // Series information (can be single string or array)
+  if (work.series) {
+    details.series = Array.isArray(work.series) ? work.series : [work.series];
+  }
+  
+  // Excerpts (for future use)
+  if (work.excerpts && work.excerpts.length > 0) {
+    details.excerpts = work.excerpts.slice(0, 3).map((e: any) => ({
+      excerpt: e.excerpt,
+      comment: e.comment
+    }));
+  }
+  
+  // Links (for future use)
+  if (work.links && work.links.length > 0) {
+    details.links = work.links.slice(0, 5).map((l: any) => ({
+      url: l.url,
+      title: l.title
+    }));
+  }
+  
+  // Contextual subjects (for future use)
+  if (work.subject_people) {
+    details.subjectPeople = work.subject_people.slice(0, 10);
+  }
+  if (work.subject_places) {
+    details.subjectPlaces = work.subject_places.slice(0, 5);
+  }
+  if (work.subject_times) {
+    details.subjectTimes = work.subject_times.slice(0, 3);
+  }
+  
+  return details;
 }
 
 /**
@@ -172,6 +271,28 @@ function parseSearchResult(book: any): BookMetadata {
   }
   if (book.ratings_count) {
     metadata.ratingsCount = book.ratings_count;
+  }
+
+  // === NEW FIELDS ===
+  
+  // Edition count
+  if (book.edition_count) {
+    metadata.editionCount = book.edition_count;
+  }
+  
+  // First publish year (distinct from publish_date)
+  if (book.first_publish_year) {
+    metadata.firstPublishYear = book.first_publish_year;
+  }
+  
+  // Alternative author names
+  if (book.author_alternative_name?.length > 0) {
+    metadata.authorAlternativeName = book.author_alternative_name;
+  }
+  
+  // Contributors (limit to first 3)
+  if (book.contributor?.length > 0) {
+    metadata.contributor = book.contributor.slice(0, 3);
   }
 
   return metadata;

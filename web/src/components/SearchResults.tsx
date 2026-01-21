@@ -42,7 +42,10 @@ function SearchResults({
   const [enrichedResults, setEnrichedResults] = useState<SearchResult[]>(results);
   const enrichmentInProgress = useRef<Set<number>>(new Set());
   const enrichedPages = useRef(new Set<number>());
+  const deepEnrichedResults = useRef<Set<number>>(new Set()); // Track which results got deep enriched
+  const observerRefs = useRef<Map<number, IntersectionObserver>>(new Map());
   const resultsPerPage = 10;
+  const DEEP_ENRICHMENT_THRESHOLD = 7; // First 7 results get deep enrichment on scroll
 
   // Sync query state with searchQuery prop
   useEffect(() => {
@@ -227,6 +230,56 @@ function SearchResults({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, results]);
 
+  // Deep enrichment function for lazy loading
+  const deepEnrichResult = async (result: SearchResult) => {
+    // Skip if already deep enriched
+    if (deepEnrichedResults.current.has(result.bookNumber)) {
+      return;
+    }
+
+    // Skip if no metadata or already has works description
+    if (!result.metadata || result.metadata.descriptionSource === 'works') {
+      deepEnrichedResults.current.add(result.bookNumber);
+      return;
+    }
+
+    console.log(`[Deep Enrichment] Starting for result #${result.bookNumber}`);
+
+    try {
+      const response = await api.deepEnrichResults([result]);
+
+      if (response.success && response.data && response.data[0]) {
+        console.log(`[Deep Enrichment] Completed for result #${result.bookNumber}`);
+        
+        // Update the enriched results
+        setEnrichedResults(prevResults => {
+          const newResults = [...prevResults];
+          const originalIndex = prevResults.findIndex(
+            r => r.bookNumber === result.bookNumber
+          );
+          if (originalIndex !== -1) {
+            newResults[originalIndex] = response.data![0];
+          }
+          return newResults;
+        });
+
+        // Mark as deep enriched
+        deepEnrichedResults.current.add(result.bookNumber);
+      }
+    } catch (error) {
+      console.error('[Deep Enrichment] Failed:', error);
+    }
+  };
+
+  // Set up Intersection Observer for lazy deep enrichment (results 8+)
+  useEffect(() => {
+    // Cleanup function to disconnect all observers
+    return () => {
+      observerRefs.current.forEach(observer => observer.disconnect());
+      observerRefs.current.clear();
+    };
+  }, []);
+
   const formatFileSize = (size: string) => size;
 
   const getFileTypeColor = (fileType: string) => {
@@ -265,7 +318,7 @@ function SearchResults({
       usenetDownloader={usenetDownloader}
       showFooter={true}
     >
-      <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row gap-8 px-4 md:px-10 py-8">
+      <div className="w-full flex flex-col md:flex-row gap-8 px-12 md:px-24 lg:px-32 xl:px-48 2xl:px-64 py-8">
         {/* Sidebar Filters */}
         <aside className="w-full md:w-64 shrink-0 space-y-8">
           <div className="flex flex-col gap-6 md:sticky md:top-24">
@@ -401,16 +454,47 @@ function SearchResults({
 
           {/* Results */}
           <div className="flex flex-col gap-4">
-            {paginatedResults.map((result) => (
+            {paginatedResults.map((result, index) => {
+              const globalIndex = startIndex + index;
+              const needsLazyDeepEnrichment = globalIndex >= DEEP_ENRICHMENT_THRESHOLD;
+
+              return (
               <motion.div
                 key={`${result.botName}-${result.bookNumber}`}
-                className="group relative flex flex-col md:flex-row items-start md:items-center justify-between p-5 bg-white dark:bg-[#111722] rounded-xl border border-slate-200 dark:border-[#232f48] hover:border-primary/50 dark:hover:border-primary/50 transition-all shadow-sm hover:shadow-md"
+                ref={(element) => {
+                  // Set up intersection observer for lazy deep enrichment
+                  if (needsLazyDeepEnrichment && element && !deepEnrichedResults.current.has(result.bookNumber)) {
+                    // Clean up old observer if exists
+                    const oldObserver = observerRefs.current.get(result.bookNumber);
+                    if (oldObserver) {
+                      oldObserver.disconnect();
+                    }
+
+                    // Create new observer
+                    const observer = new IntersectionObserver(
+                      (entries) => {
+                        entries.forEach((entry) => {
+                          if (entry.isIntersecting) {
+                            deepEnrichResult(result);
+                            observer.disconnect();
+                            observerRefs.current.delete(result.bookNumber);
+                          }
+                        });
+                      },
+                      { threshold: 0.1 }
+                    );
+
+                    observer.observe(element);
+                    observerRefs.current.set(result.bookNumber, observer);
+                  }
+                }}
+                className="group relative flex flex-col md:flex-row items-start md:items-center justify-between p-5 bg-white dark:bg-[#111722] rounded-xl border border-slate-200 dark:border-[#232f48] hover:border-primary/50 dark:hover:border-primary/50 transition-all shadow-sm hover:shadow-md w-full"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
                 data-testid="search-result-card"
               >
-                <div className="flex gap-5 items-start">
+                <div className="flex gap-5 items-start flex-1 min-w-0">
                   <div className="w-16 h-24 shrink-0 bg-slate-200 dark:bg-[#232f48] rounded-lg overflow-hidden shadow-sm flex items-center justify-center" data-testid="book-cover">
                     {result.metadata?.coverUrl ? (
                       <img
@@ -427,12 +511,21 @@ function SearchResults({
                     ) : null}
                     <span className={`material-symbols-outlined text-slate-400 text-4xl ${result.metadata?.coverUrl ? 'hidden' : ''}`} data-testid="book-cover-placeholder">book</span>
                   </div>
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                     <h3 className="text-slate-900 dark:text-white text-lg font-bold group-hover:text-primary transition-colors" data-testid="result-title">
                       {result.title}
                     </h3>
                     {result.author && (
                       <p className="text-slate-500 dark:text-slate-400 font-medium text-sm" data-testid="result-author">by {result.author}</p>
+                    )}
+                    {result.metadata?.series && result.metadata.series.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {result.metadata.series.map((seriesName, idx) => (
+                          <span key={idx} className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                            {seriesName}
+                          </span>
+                        ))}
+                      </div>
                     )}
                     {result.metadata?.description && (
                       <p className="text-slate-600 dark:text-slate-500 text-xs line-clamp-2 mt-1">
@@ -453,10 +546,28 @@ function SearchResults({
                         </span>
                         {result.sourceProvider}
                       </span>
+                      {result.metadata?.editionCount && (
+                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1" data-testid="edition-count">
+                          <span className="material-symbols-outlined text-sm">library_books</span>
+                          {result.metadata.editionCount} editions
+                        </span>
+                      )}
+                      {result.metadata?.firstPublishYear && (
+                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1" data-testid="first-publish-year">
+                          <span className="material-symbols-outlined text-sm">event</span>
+                          First published {result.metadata.firstPublishYear}
+                        </span>
+                      )}
                       {result.metadata?.publishDate && (
                         <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1" data-testid="book-publisher">
                           <span className="material-symbols-outlined text-sm">calendar_month</span>
                           {result.metadata.publisher ? `${result.metadata.publisher}, ` : ''}{result.metadata.publishDate}
+                        </span>
+                      )}
+                      {result.metadata?.contributor && result.metadata.contributor.length > 0 && (
+                        <span className="text-slate-400 dark:text-slate-500 text-xs flex items-center gap-1" data-testid="contributors">
+                          <span className="material-symbols-outlined text-sm">group</span>
+                          {result.metadata.contributor.join(', ')}
                         </span>
                       )}
                       {result.metadata?.averageRating && (
@@ -474,7 +585,7 @@ function SearchResults({
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 md:mt-0 w-full md:w-auto">
+                <div className="mt-4 md:mt-0 w-full md:w-auto shrink-0">
                   {result.source === 'nzb' && usenetDownloader?.enabled ? (
                     // NZB result with downloader enabled - show both buttons
                     <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
@@ -512,7 +623,8 @@ function SearchResults({
                   )}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination */}
