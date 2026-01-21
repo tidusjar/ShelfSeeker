@@ -14,7 +14,10 @@ vi.mock('./metadataCache.js', () => ({
     getStats: vi.fn(),
     cleanup: vi.fn()
   },
-  generateCacheKey: (title: string, author: string) => `${title.toLowerCase().trim()}|${author.toLowerCase().trim()}`
+  generateCacheKey: (title: string, author: string, deep: boolean = false) => {
+    const hash = `${title.toLowerCase().trim()}:${author.toLowerCase().trim()}`;
+    return deep ? `deep:${hash}` : `shallow:${hash}`;
+  }
 }));
 
 describe('EnrichmentService', () => {
@@ -61,9 +64,9 @@ describe('EnrichmentService', () => {
       vi.mocked(cache.get).mockReturnValue(mockMetadata);
       const result = createMockSearchResult();
       
-      const enriched = await enrichSearchResult(result);
+      const enriched = await enrichSearchResult(result, false);
       
-      expect(cache.get).toHaveBeenCalledWith('test book|test author');
+      expect(cache.get).toHaveBeenCalledWith('shallow:test book:test author');
       expect(enriched.metadata).toEqual(mockMetadata);
       expect(openLibraryService.searchByTitleAuthor).not.toHaveBeenCalled();
     });
@@ -76,8 +79,8 @@ describe('EnrichmentService', () => {
       const enriched = await enrichSearchResult(result);
       
       expect(cache.get).toHaveBeenCalled();
-      expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledWith('Test Book', 'Test Author');
-      expect(cache.set).toHaveBeenCalledWith('test book|test author', mockMetadata);
+      expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledWith('Test Book', 'Test Author', false);
+      expect(cache.set).toHaveBeenCalledWith('shallow:test book:test author', mockMetadata);
       expect(enriched.metadata).toEqual(mockMetadata);
     });
 
@@ -91,8 +94,8 @@ describe('EnrichmentService', () => {
       const enriched = await enrichSearchResult(result);
       
       expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledTimes(2);
-      expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(1, 'Test Book', 'Unknown Author');
-      expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(2, 'Test Book', '');
+      expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(1, 'Test Book', 'Unknown Author', false);
+      expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(2, 'Test Book', '', false);
       expect(enriched.metadata).toEqual(mockMetadata);
     });
 
@@ -104,7 +107,7 @@ describe('EnrichmentService', () => {
       await enrichSearchResult(result);
       
       expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledTimes(1);
-      expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledWith('Test Book', '');
+      expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledWith('Test Book', '', false);
     });
 
     it('should return original result when no metadata found', async () => {
@@ -112,7 +115,7 @@ describe('EnrichmentService', () => {
       vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(null);
       
       const result = createMockSearchResult({ author: '' });
-      const enriched = await enrichSearchResult(result);
+      const enriched = await enrichSearchResult(result, false);
       
       expect(enriched).toEqual(result);
       expect(enriched.metadata).toBeUndefined();
@@ -123,7 +126,7 @@ describe('EnrichmentService', () => {
       vi.mocked(openLibraryService.searchByTitleAuthor).mockRejectedValue(new Error('API Error'));
       
       const result = createMockSearchResult();
-      const enriched = await enrichSearchResult(result);
+      const enriched = await enrichSearchResult(result, false);
       
       expect(enriched).toEqual(result);
       expect(enriched.metadata).toBeUndefined();
@@ -136,7 +139,7 @@ describe('EnrichmentService', () => {
       );
       
       const result = createMockSearchResult();
-      const enriched = await enrichSearchResult(result);
+      const enriched = await enrichSearchResult(result, false);
       
       // Should return original result due to timeout
       expect(enriched).toEqual(result);
@@ -154,7 +157,7 @@ describe('EnrichmentService', () => {
         fileType: 'pdf'
       });
       
-      const enriched = await enrichSearchResult(result);
+      const enriched = await enrichSearchResult(result, false);
       
       expect(enriched.botCommand).toBe('!CustomBot');
       expect(enriched.filename).toBe('custom-file.pdf');
@@ -299,6 +302,213 @@ describe('EnrichmentService', () => {
     it('should clear the cache', () => {
       clearCache();
       expect(cache.clear).toHaveBeenCalled();
+    });
+  });
+
+  describe('enrichSearchResult with deepEnrich parameter', () => {
+    it('should use shallow cache key when deepEnrich is false', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(mockMetadata);
+      
+      const result = createMockSearchResult();
+      await enrichSearchResult(result, false);
+      
+      expect(cache.get).toHaveBeenCalledWith('shallow:test book:test author');
+      expect(cache.set).toHaveBeenCalledWith('shallow:test book:test author', mockMetadata);
+    });
+
+    it('should use deep cache key when deepEnrich is true', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      const deepMetadata = { ...mockMetadata, descriptionSource: 'works' as const };
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(deepMetadata);
+      
+      const result = createMockSearchResult();
+      await enrichSearchResult(result, true);
+      
+      expect(cache.get).toHaveBeenCalledWith('deep:test book:test author');
+      expect(cache.set).toHaveBeenCalledWith('deep:test book:test author', deepMetadata);
+    });
+
+    it('should pass deep enrichment flag to searchByTitleAuthor', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(mockMetadata);
+      
+      const result = createMockSearchResult();
+      await enrichSearchResult(result, true);
+      
+      expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledWith('Test Book', 'Test Author', true);
+    });
+
+    it('should not pass deep flag when false', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(mockMetadata);
+      
+      const result = createMockSearchResult();
+      await enrichSearchResult(result, false);
+      
+      expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledWith('Test Book', 'Test Author', false);
+    });
+
+    it('should skip title-only fallback for deep enrichment', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(null);
+      
+      const result = createMockSearchResult();
+      await enrichSearchResult(result, true);
+      
+      // Should only call once for deep enrichment (no fallback)
+      expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('enrichSearchResults with hybrid enrichment', () => {
+    it('should deep enrich first 7 results by default', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(mockMetadata);
+      
+      const results = Array(10).fill(null).map((_, i) => 
+        createMockSearchResult({ title: `Book ${i}` })
+      );
+      
+      await enrichSearchResults(results);
+      
+      // Check that first 7 calls have deep=true, rest have deep=false
+      expect(openLibraryService.searchByTitleAuthor).toHaveBeenCalledTimes(10);
+      
+      // First 7 should have deepEnrich=true
+      for (let i = 0; i < 7; i++) {
+        expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(
+          i + 1,
+          `Book ${i}`,
+          'Test Author',
+          true
+        );
+      }
+      
+      // Rest should have deepEnrich=false
+      for (let i = 7; i < 10; i++) {
+        expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(
+          i + 1,
+          `Book ${i}`,
+          'Test Author',
+          false
+        );
+      }
+    });
+
+    it('should accept custom deepEnrichCount parameter', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(mockMetadata);
+      
+      const results = Array(10).fill(null).map((_, i) => 
+        createMockSearchResult({ title: `Book ${i}` })
+      );
+      
+      await enrichSearchResults(results, 3); // Only deep enrich first 3
+      
+      // First 3 should have deepEnrich=true
+      for (let i = 0; i < 3; i++) {
+        expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(
+          i + 1,
+          `Book ${i}`,
+          'Test Author',
+          true
+        );
+      }
+      
+      // Rest should have deepEnrich=false
+      for (let i = 3; i < 10; i++) {
+        expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(
+          i + 1,
+          `Book ${i}`,
+          'Test Author',
+          false
+        );
+      }
+    });
+
+    it('should deep enrich all results when deepEnrichCount exceeds array length', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(mockMetadata);
+      
+      const results = Array(5).fill(null).map((_, i) => 
+        createMockSearchResult({ title: `Book ${i}` })
+      );
+      
+      await enrichSearchResults(results, 100); // Deep enrich all
+      
+      // All should have deepEnrich=true
+      for (let i = 0; i < 5; i++) {
+        expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(
+          i + 1,
+          `Book ${i}`,
+          'Test Author',
+          true
+        );
+      }
+    });
+
+    it('should disable deep enrichment when deepEnrichCount is 0', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(mockMetadata);
+      
+      const results = Array(5).fill(null).map((_, i) => 
+        createMockSearchResult({ title: `Book ${i}` })
+      );
+      
+      await enrichSearchResults(results, 0); // No deep enrichment
+      
+      // All should have deepEnrich=false
+      for (let i = 0; i < 5; i++) {
+        expect(openLibraryService.searchByTitleAuthor).toHaveBeenNthCalledWith(
+          i + 1,
+          `Book ${i}`,
+          'Test Author',
+          false
+        );
+      }
+    });
+
+    it('should use different cache keys for deep vs shallow enrichment', async () => {
+      vi.mocked(cache.get).mockReturnValue(null);
+      vi.mocked(openLibraryService.searchByTitleAuthor).mockResolvedValue(mockMetadata);
+      
+      const results = [
+        createMockSearchResult({ title: 'Book 1' }), // Deep (index 0)
+        createMockSearchResult({ title: 'Book 2' })  // Shallow (index 1)
+      ];
+      
+      await enrichSearchResults(results, 1); // Only first one deep
+      
+      // Verify cache.set was called with different key formats
+      expect(cache.set).toHaveBeenNthCalledWith(1, 'deep:book 1:test author', mockMetadata);
+      expect(cache.set).toHaveBeenNthCalledWith(2, 'shallow:book 2:test author', mockMetadata);
+    });
+
+    it('should handle mix of cached and uncached results with hybrid enrichment', async () => {
+      const shallowMetadata = { ...mockMetadata, isbn: 'shallow' };
+      const deepMetadata = { ...mockMetadata, isbn: 'deep', descriptionSource: 'works' as const };
+      
+      vi.mocked(cache.get)
+        .mockReturnValueOnce(deepMetadata) // First result cached with deep
+        .mockReturnValueOnce(null) // Second result not cached
+        .mockReturnValueOnce(null); // Third result not cached
+      
+      vi.mocked(openLibraryService.searchByTitleAuthor)
+        .mockResolvedValueOnce(deepMetadata) // Second result fetched with deep
+        .mockResolvedValueOnce(shallowMetadata); // Third result fetched with shallow
+      
+      const results = [
+        createMockSearchResult({ title: 'Cached' }),
+        createMockSearchResult({ title: 'Deep' }),
+        createMockSearchResult({ title: 'Shallow' })
+      ];
+      
+      const enriched = await enrichSearchResults(results, 2); // First 2 deep
+      
+      expect(enriched[0].metadata?.isbn).toBe('deep'); // From cache
+      expect(enriched[1].metadata?.isbn).toBe('deep'); // From API with deep
+      expect(enriched[2].metadata?.isbn).toBe('shallow'); // From API without deep
     });
   });
 });

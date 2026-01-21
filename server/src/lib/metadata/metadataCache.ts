@@ -1,5 +1,6 @@
 import { BookMetadata } from '../types.js';
 import { LIMITS } from '../../constants.js';
+import { createHash } from 'crypto';
 
 /**
  * Metadata Cache
@@ -106,9 +107,16 @@ export default cache;
 
 /**
  * Generate a cache key from title and author
+ * @param title - Book title
+ * @param author - Author name
+ * @param deep - Whether this is a deep enrichment (includes Works API)
  */
-export function generateCacheKey(title: string, author: string): string {
-  const normalizedTitle = title.toLowerCase().trim();
-  const normalizedAuthor = author.toLowerCase().trim();
-  return `${normalizedTitle}|${normalizedAuthor}`;
+export function generateCacheKey(
+  title: string, 
+  author: string, 
+  deep: boolean = false
+): string {
+  const normalized = `${title.toLowerCase().trim()}:${author.toLowerCase().trim()}`;
+  const hash = createHash('md5').update(normalized).digest('hex');
+  return deep ? `deep:${hash}` : `shallow:${hash}`;
 }

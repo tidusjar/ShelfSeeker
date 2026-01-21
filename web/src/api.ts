@@ -62,6 +62,21 @@ export const api = {
     });
   },
 
+  /**
+   * Deep enrich specific results (fetch Works API data)
+   */
+  async deepEnrichResults(results: SearchResult[]): Promise<ApiResponse<SearchResult[]>> {
+    const bookNumbers = results.map(r => r.bookNumber).sort().join(',');
+    return deduplicatedFetch(`deep-enrich:${bookNumbers}`, async () => {
+      const response = await fetch(`${API_BASE}/enrich/deep`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ results })
+      });
+      return response.json();
+    });
+  },
+
   async download(result: SearchResult): Promise<ApiResponse<{ filename: string }>> {
     const payload = result.source === 'irc'
       ? { source: 'irc', command: result.command }

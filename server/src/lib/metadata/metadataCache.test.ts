@@ -17,18 +17,38 @@ describe('MetadataCache', () => {
   });
 
   describe('generateCacheKey', () => {
-    it('should generate key from title and author', () => {
-      const key = generateCacheKey('The Great Book', 'John Doe');
-      expect(key).toBe('the great book|john doe');
+    it('should generate shallow key from title and author', () => {
+      const key = generateCacheKey('The Great Book', 'John Doe', false);
+      expect(key).toContain('shallow:');
+      expect(key).toMatch(/^shallow:[a-f0-9]{32}$/);
     });
 
-    it('should normalize title and author to lowercase', () => {
-      const key1 = generateCacheKey('UPPERCASE BOOK', 'UPPERCASE AUTHOR');
-      const key2 = generateCacheKey('uppercase book', 'uppercase author');
+    it('should generate deep key when deep flag is true', () => {
+      const key = generateCacheKey('The Great Book', 'John Doe', true);
+      expect(key).toContain('deep:');
+      expect(key).toMatch(/^deep:[a-f0-9]{32}$/);
+    });
+
+    it('should generate same hash for same title and author regardless of case', () => {
+      const key1 = generateCacheKey('UPPERCASE BOOK', 'UPPERCASE AUTHOR', false);
+      const key2 = generateCacheKey('uppercase book', 'uppercase author', false);
       expect(key1).toBe(key2);
     });
 
-    it('should trim whitespace', () => {
+    it('should generate different keys for deep vs shallow', () => {
+      const shallowKey = generateCacheKey('Test Book', 'Test Author', false);
+      const deepKey = generateCacheKey('Test Book', 'Test Author', true);
+      expect(shallowKey).not.toBe(deepKey);
+      expect(shallowKey).toContain('shallow:');
+      expect(deepKey).toContain('deep:');
+    });
+
+    it('should default to shallow when deep parameter is omitted', () => {
+      const key = generateCacheKey('Book Title', 'Author Name');
+      expect(key).toContain('shallow:');
+    });
+
+    it('should trim whitespace before hashing', () => {
       const key1 = generateCacheKey('  Spaced Book  ', '  Spaced Author  ');
       const key2 = generateCacheKey('Spaced Book', 'Spaced Author');
       expect(key1).toBe(key2);
@@ -36,7 +56,14 @@ describe('MetadataCache', () => {
 
     it('should handle empty author', () => {
       const key = generateCacheKey('Book Title', '');
-      expect(key).toBe('book title|');
+      expect(key).toContain('shallow:');
+      expect(key).toMatch(/^shallow:[a-f0-9]{32}$/);
+    });
+
+    it('should generate consistent hashes', () => {
+      const key1 = generateCacheKey('Test', 'Author', false);
+      const key2 = generateCacheKey('Test', 'Author', false);
+      expect(key1).toBe(key2);
     });
   });
 

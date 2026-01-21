@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { searchByTitleAuthor, searchByISBN, getCoverUrl } from './openLibraryService.js';
+import { searchByTitleAuthor, searchByISBN, getCoverUrl, fetchWorkDetails } from './openLibraryService.js';
 import { BookMetadata } from '../types.js';
 
 // Mock global fetch
@@ -56,6 +56,7 @@ describe('OpenLibraryService', () => {
       expect(result).toEqual({
         publisher: 'Test Publisher',
         publishDate: '2020',
+        firstPublishYear: 2020,
         pageCount: 300,
         language: 'eng',
         subjects: ['Fiction', 'Fantasy'],
@@ -430,6 +431,352 @@ describe('OpenLibraryService', () => {
       expect(urlS).toContain('-S.jpg');
       expect(urlM).toContain('-M.jpg');
       expect(urlL).toContain('-L.jpg');
+    });
+  });
+
+  describe('fetchWorkDetails', () => {
+    it('should return null when workKey is empty', async () => {
+      const result = await fetchWorkDetails('');
+      expect(result).toBeNull();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('should fetch work details with clean work key', async () => {
+      const mockWorkResponse = {
+        description: 'A fascinating book about testing',
+        series: ['Test Series', 'Book 1'],
+        excerpts: [
+          { excerpt: 'This is an excerpt', comment: 'From chapter 1' }
+        ],
+        links: [
+          { url: 'https://example.com', title: 'Author Website' }
+        ],
+        subject_people: ['Character 1', 'Character 2'],
+        subject_places: ['New York', 'London'],
+        subject_times: ['1920s', '1930s']
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/works/OL123456W.json'),
+        expect.any(Object)
+      );
+      
+      expect(result).toEqual({
+        description: 'A fascinating book about testing',
+        descriptionSource: 'works',
+        series: ['Test Series', 'Book 1'],
+        excerpts: [{ excerpt: 'This is an excerpt', comment: 'From chapter 1' }],
+        links: [{ url: 'https://example.com', title: 'Author Website' }],
+        subjectPeople: ['Character 1', 'Character 2'],
+        subjectPlaces: ['New York', 'London'],
+        subjectTimes: ['1920s', '1930s']
+      });
+    });
+
+    it('should handle work key with /works/ prefix', async () => {
+      const mockWorkResponse = {
+        description: 'Test description'
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      await fetchWorkDetails('/works/OL123456W');
+      
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/works/OL123456W.json'),
+        expect.any(Object)
+      );
+    });
+
+    it('should parse description from object format', async () => {
+      const mockWorkResponse = {
+        description: {
+          value: 'Description from object',
+          type: '/type/text'
+        }
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result?.description).toBe('Description from object');
+      expect(result?.descriptionSource).toBe('works');
+    });
+
+    it('should parse description from string format', async () => {
+      const mockWorkResponse = {
+        description: 'Simple string description'
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result?.description).toBe('Simple string description');
+      expect(result?.descriptionSource).toBe('works');
+    });
+
+    it('should handle single series as string', async () => {
+      const mockWorkResponse = {
+        series: 'Harry Potter'
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result?.series).toEqual(['Harry Potter']);
+    });
+
+    it('should handle series as array', async () => {
+      const mockWorkResponse = {
+        series: ['Series Name', 'Book 2', 'Part 3']
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result?.series).toEqual(['Series Name', 'Book 2', 'Part 3']);
+    });
+
+    it('should limit excerpts to 3', async () => {
+      const mockWorkResponse = {
+        excerpts: [
+          { excerpt: 'Excerpt 1' },
+          { excerpt: 'Excerpt 2' },
+          { excerpt: 'Excerpt 3' },
+          { excerpt: 'Excerpt 4' },
+          { excerpt: 'Excerpt 5' }
+        ]
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result?.excerpts).toHaveLength(3);
+    });
+
+    it('should limit links to 5', async () => {
+      const mockWorkResponse = {
+        links: Array.from({ length: 10 }, (_, i) => ({
+          url: `https://example.com/${i}`,
+          title: `Link ${i}`
+        }))
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result?.links).toHaveLength(5);
+    });
+
+    it('should limit subject_people to 10', async () => {
+      const mockWorkResponse = {
+        subject_people: Array.from({ length: 20 }, (_, i) => `Person ${i}`)
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result?.subjectPeople).toHaveLength(10);
+    });
+
+    it('should limit subject_places to 5', async () => {
+      const mockWorkResponse = {
+        subject_places: Array.from({ length: 10 }, (_, i) => `Place ${i}`)
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result?.subjectPlaces).toHaveLength(5);
+    });
+
+    it('should limit subject_times to 3', async () => {
+      const mockWorkResponse = {
+        subject_times: ['1900s', '1910s', '1920s', '1930s', '1940s']
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result?.subjectTimes).toHaveLength(3);
+    });
+
+    it('should return null on API error', async () => {
+      vi.mocked(fetch).mockResolvedValue({
+        ok: false,
+        status: 404
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result).toBeNull();
+    });
+
+    it('should return null on network error', async () => {
+      vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result).toBeNull();
+    });
+
+    it('should return empty object when no relevant fields present', async () => {
+      const mockWorkResponse = {
+        title: 'Book Title',
+        author: 'Author Name'
+        // No description, series, excerpts, etc.
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockWorkResponse
+      } as Response);
+
+      const result = await fetchWorkDetails('OL123456W');
+      expect(result).toEqual({});
+    });
+  });
+
+  describe('searchByTitleAuthor with includeWorkDetails', () => {
+    it('should fetch work details when includeWorkDetails is true', async () => {
+      const mockSearchResponse = {
+        docs: [
+          {
+            title: 'Test Book',
+            key: '/works/OL123456W'
+          }
+        ]
+      };
+
+      const mockWorkResponse = {
+        description: 'Full description from Works API',
+        series: ['Test Series']
+      };
+
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockSearchResponse
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockWorkResponse
+        } as Response);
+
+      const result = await searchByTitleAuthor('Test Book', 'Author', true);
+      
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(result?.openLibraryKey).toBe('/works/OL123456W');
+      expect(result?.description).toBe('Full description from Works API');
+      expect(result?.descriptionSource).toBe('works');
+      expect(result?.series).toEqual(['Test Series']);
+    });
+
+    it('should not fetch work details when includeWorkDetails is false', async () => {
+      const mockSearchResponse = {
+        docs: [
+          {
+            title: 'Test Book',
+            key: '/works/OL123456W'
+          }
+        ]
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockSearchResponse
+      } as Response);
+
+      const result = await searchByTitleAuthor('Test Book', 'Author', false);
+      
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(result?.openLibraryKey).toBe('/works/OL123456W');
+      expect(result?.description).toBeUndefined();
+      expect(result?.series).toBeUndefined();
+    });
+
+    it('should handle work details fetch failure gracefully', async () => {
+      const mockSearchResponse = {
+        docs: [
+          {
+            title: 'Test Book',
+            key: '/works/OL123456W'
+          }
+        ]
+      };
+
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockSearchResponse
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500
+        } as Response);
+
+      const result = await searchByTitleAuthor('Test Book', 'Author', true);
+      
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(result?.openLibraryKey).toBe('/works/OL123456W');
+      // Should still return search result even if works fetch failed
+      expect(result).not.toBeNull();
+    });
+
+    it('should skip work details if no openLibraryKey', async () => {
+      const mockSearchResponse = {
+        docs: [
+          {
+            title: 'Test Book'
+            // No key field
+          }
+        ]
+      };
+
+      vi.mocked(fetch).mockResolvedValue({
+        ok: true,
+        json: async () => mockSearchResponse
+      } as Response);
+
+      const result = await searchByTitleAuthor('Test Book', 'Author', true);
+      
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({});
     });
   });
 });

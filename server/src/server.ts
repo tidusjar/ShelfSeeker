@@ -163,6 +163,43 @@ app.post('/api/enrich', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/enrich/deep
+ * Deep enrichment for specific results (Works API call)
+ * Body: { results: SearchResult[] }
+ */
+app.post('/api/enrich/deep', async (req, res) => {
+  try {
+    const { results } = req.body;
+    
+    if (!Array.isArray(results)) {
+      return res.json({
+        success: false,
+        error: 'Invalid request: results must be an array'
+      });
+    }
+    
+    logger.info('[Server] Deep enriching results', { resultCount: results.length });
+    
+    // Import enrichment service
+    const { enrichSearchResults } = await import('./lib/metadata/enrichmentService.js');
+    
+    // Deep enrich all provided results
+    const enriched = await enrichSearchResults(results, results.length);
+    
+    res.json({
+      success: true,
+      data: enriched
+    });
+  } catch (error: any) {
+    logger.error('Deep enrichment failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to enrich results'
+    });
+  }
+});
+
 app.post('/api/download', async (req, res) => {
   try {
     const { source, command, nzbUrl, providerId, title } = req.body;

@@ -23,3 +23,11 @@ export const LIMITS = {
   MAX_CACHE_SIZE: 10_000,             // Maximum metadata cache entries
   MAX_REQUEST_PAYLOAD_SIZE: '1mb',    // Maximum HTTP request body size
 } as const;
+
+// Enrichment configuration
+export const DEEP_ENRICHMENT_FIRST_N_RESULTS = 7;
+
+// Quick reference for tuning deep enrichment behavior
+// To disable deep enrichment: Set to 0
+// To enrich all: Set to large number (e.g., 100)
+// Recommended: 5-10 for balance

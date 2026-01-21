@@ -24,6 +24,33 @@ export interface BookMetadata {
   
   // Categories
   subjects?: string[];
+  
+  // === NEW: From Search API (free - already in response) ===
+  editionCount?: number;              // Total number of editions available
+  firstPublishYear?: number;          // Original publication year
+  authorAlternativeName?: string[];   // Pen names, translated names
+  contributor?: string[];             // Illustrators, translators, editors
+  
+  // === NEW: From Works API (requires additional call) ===
+  descriptionSource?: 'search' | 'works';  // Track which API provided description
+  
+  // Series information
+  series?: string[];                  // e.g., ["Harry Potter", "Book 1"]
+  
+  // Future use - keep in model but don't display yet
+  excerpts?: Array<{
+    excerpt: string;
+    comment?: string;
+  }>;
+  
+  links?: Array<{
+    url: string;
+    title: string;
+  }>;
+  
+  subjectPeople?: string[];           // Character names (for future use)
+  subjectPlaces?: string[];           // Settings/locations (for future use)
+  subjectTimes?: string[];            // Time periods (for future use)
 }
 
 export interface SearchResult {
