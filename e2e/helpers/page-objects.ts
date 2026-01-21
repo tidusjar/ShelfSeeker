@@ -400,6 +400,145 @@ export class SettingsPage {
 }
 
 /**
+ * Page Object Model for Onboarding Flow
+ */
+export class OnboardingPage {
+  constructor(private page: Page) {}
+
+  /**
+   * Check if onboarding is currently displayed
+   */
+  async isVisible(): Promise<boolean> {
+    return await this.page.locator('text=/ShelfSeeker/').locator('text=/Your personal library awaits/').isVisible().catch(() => false);
+  }
+
+  /**
+   * Click "Get Started" button on welcome screen
+   */
+  async clickGetStarted(): Promise<void> {
+    await this.page.click('button:has-text("Get Started")');
+  }
+
+  /**
+   * Click "I'll do this later" skip button
+   */
+  async clickSkipLater(): Promise<void> {
+    await this.page.click('button:has-text("I\'ll do this later")');
+  }
+
+  /**
+   * Click "Skip for now" button
+   */
+  async clickSkipNow(): Promise<void> {
+    await this.page.click('button:has-text("Skip for now")');
+  }
+
+  /**
+   * Enable IRC source
+   */
+  async enableIrc(): Promise<void> {
+    await this.page.click('button[aria-label="Enable IRC"]');
+  }
+
+  /**
+   * Configure IRC settings
+   */
+  async configureIrc(config: {
+    server: string;
+    port: number;
+    channel: string;
+    searchCommand: string;
+  }): Promise<void> {
+    await this.page.fill('input[name="server"]', config.server);
+    await this.page.fill('input[name="port"]', String(config.port));
+    await this.page.fill('input[name="channel"]', config.channel);
+    await this.page.fill('input[name="searchCommand"]', config.searchCommand);
+  }
+
+  /**
+   * Enable NZB source
+   */
+  async enableNzb(): Promise<void> {
+    await this.page.click('button[aria-label="Enable NZB"]');
+  }
+
+  /**
+   * Configure NZB provider
+   */
+  async configureNzb(config: {
+    name: string;
+    url: string;
+    apiKey: string;
+  }): Promise<void> {
+    await this.page.fill('input[name="name"]', config.name);
+    await this.page.fill('input[name="url"]', config.url);
+    await this.page.fill('input[name="apiKey"]', config.apiKey);
+  }
+
+  /**
+   * Click Continue button
+   */
+  async clickContinue(): Promise<void> {
+    await this.page.click('button:has-text("Continue to Downloader Setup")');
+  }
+
+  /**
+   * Click Back button
+   */
+  async clickBack(): Promise<void> {
+    await this.page.click('button:has-text("Back")');
+  }
+
+  /**
+   * Configure downloader
+   */
+  async configureDownloader(config: {
+    name: string;
+    host: string;
+    port: number;
+    username?: string;
+    password?: string;
+    apiKey?: string;
+  }): Promise<void> {
+    await this.page.click('button:has-text("Configure")');
+    await this.page.fill('input[name="name"]', config.name);
+    await this.page.fill('input[name="host"]', config.host);
+    await this.page.fill('input[name="port"]', String(config.port));
+
+    if (config.username) {
+      await this.page.fill('input[name="username"]', config.username);
+    }
+    if (config.password) {
+      await this.page.fill('input[name="password"]', config.password);
+    }
+    if (config.apiKey) {
+      await this.page.fill('input[name="apiKey"]', config.apiKey);
+    }
+  }
+
+  /**
+   * Click Finish Setup button
+   */
+  async clickFinish(): Promise<void> {
+    await this.page.click('button:has-text("Finish Setup")');
+  }
+
+  /**
+   * Get current step number (1, 2, or 3)
+   */
+  async getCurrentStep(): Promise<number> {
+    const step1 = await this.page.locator('text=/Step 1 of 3/').isVisible().catch(() => false);
+    const step2 = await this.page.locator('text=/Step 2 of 3/').isVisible().catch(() => false);
+    const step3 = await this.page.locator('text=/Step 3 of 3/').isVisible().catch(() => false);
+
+    if (step1) return 1;
+    if (step2) return 2;
+    if (step3) return 3;
+    return 0;
+  }
+}
+
+/**
  * Page Object Model for Download Panel
  */
 export class DownloadPanel {

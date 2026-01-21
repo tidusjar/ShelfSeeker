@@ -129,3 +129,16 @@ export interface SystemInfo {
   nodeVersion: string;
   uptime: number;
 }
+
+export interface OnboardingState {
+  completed: boolean;
+  skipped: boolean;
+  lastStep: number;
+  completedAt?: string;
+}
+
+export interface OnboardingConfig {
+  ircEnabled: boolean;
+  nzbEnabled: boolean;
+  torrentsEnabled: boolean;
+}

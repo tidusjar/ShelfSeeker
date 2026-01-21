@@ -4,10 +4,11 @@ import Home from './components/Home';
 import SearchResults from './components/SearchResults';
 import DownloadPanel from './components/DownloadPanel';
 import Settings from './components/Settings';
+import Onboarding from './components/Onboarding';
 import { api } from './api';
-import type { SearchResult, DownloadProgress, ConfigData, ConnectionStatus, NzbProvider, Downloader } from './types';
+import type { SearchResult, DownloadProgress, ConfigData, ConnectionStatus, NzbProvider, Downloader, OnboardingState } from './types';
 
-type View = 'home' | 'results' | 'settings';
+type View = 'home' | 'results' | 'settings' | 'onboarding';
 
 function App() {
   const [view, setView] = useState<View>('home');
@@ -19,11 +20,13 @@ function App() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [nzbProviders, setNzbProviders] = useState<NzbProvider[]>([]);
   const [usenetDownloader, setUsenetDownloader] = useState<Downloader | null>(null);
+  const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null);
 
   useEffect(() => {
     loadConfig();
     loadStatus();
     loadProviders();
+    loadOnboardingState();
 
     // Poll status every 5 seconds
     const statusInterval = setInterval(loadStatus, 5000);
@@ -56,6 +59,17 @@ function App() {
 
     if (downloaderResponse.success && downloaderResponse.data) {
       setUsenetDownloader(downloaderResponse.data);
+    }
+  };
+
+  const loadOnboardingState = async () => {
+    const response = await api.getOnboardingStatus();
+    if (response.success && response.data) {
+      setOnboardingState(response.data);
+      // If onboarding not completed, redirect to onboarding view
+      if (!response.data.completed) {
+        setView('onboarding');
+      }
     }
   };
 
@@ -187,6 +201,27 @@ function App() {
     setView('home');
   };
 
+  const handleOnboardingComplete = async () => {
+    await api.completeOnboarding();
+    setOnboardingState({
+      completed: true,
+      skipped: false,
+      lastStep: 3,
+      completedAt: new Date().toISOString(),
+    });
+    setView('home');
+  };
+
+  const handleOnboardingSkip = async () => {
+    await api.skipOnboarding();
+    setOnboardingState({
+      completed: true,
+      skipped: true,
+      lastStep: onboardingState?.lastStep || 0,
+    });
+    setView('home');
+  };
+
   return (
     <div className="min-h-screen bg-background-dark">
       <AnimatePresence mode="wait">
@@ -231,6 +266,14 @@ function App() {
               usenetDownloader={usenetDownloader}
             />
           </motion.div>
+        ) : view === 'onboarding' ? (
+          <Onboarding
+            key="onboarding"
+            onComplete={handleOnboardingComplete}
+            onSkip={handleOnboardingSkip}
+            config={config}
+            onConfigUpdate={handleConfigUpdate}
+          />
         ) : (
           <motion.div
             key="settings"

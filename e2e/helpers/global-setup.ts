@@ -68,6 +68,12 @@ export default async function globalSetup() {
       ui: {
         theme: 'dark',
         maxResults: 100
+      },
+      onboarding: {
+        completed: true, // Mark onboarding as completed for tests
+        skipped: false,
+        lastStep: 3,
+        completedAt: new Date().toISOString()
       }
     };
 
