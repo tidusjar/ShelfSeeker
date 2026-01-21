@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.9](https://github.com/tidusjar/ShelfSeeker/compare/v0.1.8...v0.1.9) (2026-01-21)
+
+
+### Features
+
+* improve metadata ([749b416](https://github.com/tidusjar/ShelfSeeker/commit/749b416a95ce6e601ba451efbced7f2e506f2ee1))
+* improve metadata ([8df5e85](https://github.com/tidusjar/ShelfSeeker/commit/8df5e8517fc5edbb49669e667a4e7385e82b8196))
+
 ### [0.1.8](https://github.com/tidusjar/ShelfSeeker/compare/v0.1.7...v0.1.8) (2026-01-20)
 
 
