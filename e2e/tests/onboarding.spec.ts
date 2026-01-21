@@ -14,15 +14,14 @@ test.describe('Onboarding Flow', () => {
     const context = await request.newContext();
     await context.post('http://localhost:3001/api/onboarding/reset');
     await context.dispose();
+
+    // Navigate to home page to reset app state
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
   });
 
   test('should show welcome screen on first visit', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForSelector('.onboarding-container', { timeout: 5000 });
-    await page.waitForTimeout(700);
-
-    // Should see welcome screen elements
+    // Should see welcome screen elements (already navigated and waited in beforeEach)
     await expect(page.locator('.onboarding-container')).toBeVisible();
     await expect(page.locator('text=/Your personal library awaits/')).toBeVisible();
     await expect(page.locator('button:has-text("Begin Setup")')).toBeVisible();
@@ -32,13 +31,8 @@ test.describe('Onboarding Flow', () => {
   test('should complete full onboarding with IRC', async ({ page }) => {
     const mockConfig = getMockConfig();
 
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForSelector('.onboarding-container', { timeout: 5000 });
-    await page.waitForTimeout(700);
-
     // Step 1 -> Step 2
-    await page.click('[data-testid="onboarding-begin-setup"]');
+    await page.click('[data-testid="onboarding-begin-setup"]', { timeout: 10000 });
     await page.waitForSelector('text=/Configure Search Sources/', { timeout: 5000 });
     await page.waitForTimeout(700);
 
@@ -82,7 +76,7 @@ test.describe('Onboarding Flow', () => {
     await page.waitForTimeout(700);
 
     // Step 1 -> Step 2
-    await page.click('[data-testid="onboarding-begin-setup"]');
+    await page.click('[data-testid="onboarding-begin-setup"]', { timeout: 10000 });
     await page.waitForSelector('text=/Configure Search Sources/', { timeout: 5000 });
     await page.waitForTimeout(700);
 
@@ -123,7 +117,7 @@ test.describe('Onboarding Flow', () => {
     await page.waitForTimeout(700);
 
     // Step 1 -> Step 2
-    await page.click('[data-testid="onboarding-begin-setup"]');
+    await page.click('[data-testid="onboarding-begin-setup"]', { timeout: 10000 });
     await page.waitForSelector('text=/Configure Search Sources/', { timeout: 5000 });
     await page.waitForTimeout(700);
 

@@ -70,10 +70,10 @@ export default async function globalSetup() {
         maxResults: 100
       },
       onboarding: {
-        completed: true, // Mark onboarding as completed for tests
+        completed: false, // Let tests control onboarding state
         skipped: false,
-        lastStep: 3,
-        completedAt: new Date().toISOString()
+        lastStep: 0,
+        completedAt: null
       }
     };
 

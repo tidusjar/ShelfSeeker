@@ -97,13 +97,8 @@ export class SearchResultsPage {
    * Wait for results to load
    */
   async waitForResults(timeout: number = 10000): Promise<void> {
-    // Wait for either results or "no results" message
-    try {
-      await this.page.waitForSelector('[data-testid="search-result-card"]', { timeout });
-    } catch {
-      // If no results cards, check for "no results" message
-      await this.page.waitForSelector('text=/no results/i', { timeout: timeout / 2 });
-    }
+    // Wait for search result cards to appear
+    await this.page.waitForSelector('[data-testid="search-result-card"]', { timeout });
   }
 
   /**
@@ -231,14 +226,17 @@ export class SettingsPage {
       await this.page.goto('/');
       await this.page.waitForLoadState('networkidle');
     }
-    
+
     // Click settings button using data-testid
     const settingsButton = this.page.locator('[data-testid="settings-button"]');
     await settingsButton.waitFor({ state: 'visible', timeout: 5000 });
     await settingsButton.click();
-    
+
     // Wait for settings page to load - look for IRC nav button
     await this.page.waitForSelector('[data-testid="settings-nav-irc"]', { timeout: 10000 });
+
+    // Wait for any animations to complete to prevent element detached errors
+    await this.page.waitForTimeout(300);
   }
 
   /**

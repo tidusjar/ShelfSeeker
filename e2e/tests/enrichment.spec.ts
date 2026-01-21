@@ -214,11 +214,11 @@ test.describe('Search Result Enrichment', () => {
     await page.waitForTimeout(3000);
 
     const firstCard = page.locator('[data-testid="search-result-card"]').first();
-    
+
     // Should have either a cover image or a placeholder
     const hasCover = await firstCard.locator('[data-testid="book-cover-image"]').isVisible().catch(() => false);
     const hasPlaceholder = await firstCard.locator('[data-testid="book-cover-placeholder"]').isVisible().catch(() => false);
-    
+
     expect(hasCover || hasPlaceholder).toBe(true);
   });
 
