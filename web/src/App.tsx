@@ -11,7 +11,10 @@ import type { SearchResult, DownloadProgress, ConfigData, ConnectionStatus, NzbP
 type View = 'home' | 'results' | 'settings' | 'onboarding';
 
 function App() {
-  const [view, setView] = useState<View>('home');
+  const [view, setView] = useState<View>(() => {
+    console.log('[App] Initial view: home');
+    return 'home';
+  });
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [currentDownload, setCurrentDownload] = useState<DownloadProgress | null>(null);
@@ -23,6 +26,7 @@ function App() {
   const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null);
 
   useEffect(() => {
+    console.log('[App] Component mounted, loading initial state...');
     loadConfig();
     loadStatus();
     loadProviders();
@@ -32,6 +36,10 @@ function App() {
     const statusInterval = setInterval(loadStatus, 5000);
     return () => clearInterval(statusInterval);
   }, []);
+
+  useEffect(() => {
+    console.log('[App] View changed to:', view);
+  }, [view]);
 
   const loadConfig = async () => {
     const response = await api.getConfig();
@@ -63,13 +71,21 @@ function App() {
   };
 
   const loadOnboardingState = async () => {
+    console.log('[App] Loading onboarding state...');
     const response = await api.getOnboardingStatus();
+    console.log('[App] Onboarding status response:', response);
     if (response.success && response.data) {
       setOnboardingState(response.data);
+      console.log('[App] Onboarding data:', response.data);
       // If onboarding not completed, redirect to onboarding view
       if (!response.data.completed) {
+        console.log('[App] Onboarding not completed, setting view to onboarding');
         setView('onboarding');
+      } else {
+        console.log('[App] Onboarding already completed, staying on current view');
       }
+    } else {
+      console.log('[App] Failed to load onboarding state:', response.error);
     }
   };
 

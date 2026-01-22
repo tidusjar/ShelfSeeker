@@ -8,6 +8,8 @@ export interface OnboardingWelcomeProps {
 }
 
 const OnboardingWelcome = ({ onNext, onSkip }: OnboardingWelcomeProps) => {
+  console.log('[OnboardingWelcome] Component rendering');
+
   const features = [
     {
       title: 'IRC Archive Search',

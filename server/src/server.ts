@@ -537,8 +537,10 @@ app.post('/api/downloaders/send', async (req, res) => {
 app.get('/api/onboarding/status', (req, res) => {
   try {
     const onboardingState = configService.getOnboardingState();
+    console.log('[Server] GET /api/onboarding/status - returning:', onboardingState);
     res.json({ success: true, data: onboardingState });
   } catch (error) {
+    console.log('[Server] GET /api/onboarding/status - error:', error);
     res.json({ success: false, error: (error as Error).message });
   }
 });
@@ -582,9 +584,13 @@ app.post('/api/onboarding/skip', async (req, res) => {
 // Reset onboarding (for testing)
 app.post('/api/onboarding/reset', async (req, res) => {
   try {
+    console.log('[Server] POST /api/onboarding/reset - resetting onboarding');
     await configService.resetOnboarding();
+    const newState = configService.getOnboardingState();
+    console.log('[Server] POST /api/onboarding/reset - new state:', newState);
     res.json({ success: true, data: { message: 'Onboarding reset' } });
   } catch (error) {
+    console.log('[Server] POST /api/onboarding/reset - error:', error);
     res.json({ success: false, error: (error as Error).message });
   }
 });
