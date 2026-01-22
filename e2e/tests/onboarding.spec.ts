@@ -60,7 +60,8 @@ test.describe('Onboarding Flow', () => {
     const configResponse = await page.evaluate(async () => {
       const res = await fetch('http://localhost:3001/api/config');
       return await res.json();
-    });
+    }) as { success: boolean; data: any };
+
     expect(configResponse.success).toBe(true);
     expect(configResponse.data.irc.enabled).toBe(true);
     expect(configResponse.data.irc.server).toBe('localhost');
@@ -102,7 +103,8 @@ test.describe('Onboarding Flow', () => {
     const nzbResponse = await page.evaluate(async () => {
       const res = await fetch('http://localhost:3001/api/nzb/providers');
       return await res.json();
-    });
+    }) as { success: boolean; data: any };
+
     expect(nzbResponse.success).toBe(true);
     expect(nzbResponse.data.length).toBeGreaterThan(0);
     expect(nzbResponse.data[0].name).toBe('Test Indexer');
@@ -150,7 +152,8 @@ test.describe('Onboarding Flow', () => {
     const configResponse = await page.evaluate(async () => {
       const res = await fetch('http://localhost:3001/api/config');
       return await res.json();
-    });
+    }) as { success: boolean; data: any };
+
     expect(configResponse.success).toBe(true);
     expect(configResponse.data.irc.enabled).toBe(true);
     expect(configResponse.data.irc.server).toBe('localhost');
@@ -158,7 +161,8 @@ test.describe('Onboarding Flow', () => {
     const nzbResponse = await page.evaluate(async () => {
       const res = await fetch('http://localhost:3001/api/nzb/providers');
       return await res.json();
-    });
+    }) as { success: boolean; data: any };
+
     expect(nzbResponse.success).toBe(true);
     expect(nzbResponse.data.length).toBeGreaterThan(0);
   });
@@ -177,7 +181,8 @@ test.describe('Onboarding Flow', () => {
     const response = await page.evaluate(async () => {
       const res = await fetch('http://localhost:3001/api/onboarding/status');
       return await res.json();
-    });
+    }) as { success: boolean; data: { skipped: boolean } };
+
     expect(response.success).toBe(true);
     expect(response.data.skipped).toBe(true);
   });

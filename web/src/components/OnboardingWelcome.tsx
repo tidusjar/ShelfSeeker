@@ -124,7 +124,7 @@ const OnboardingWelcome = ({ onNext, onSkip }: OnboardingWelcomeProps) => {
             animate="animate"
             className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16"
           >
-            {features.map((feature, index) => (
+            {features.map((feature) => (
               <motion.div
                 key={feature.title}
                 variants={{
