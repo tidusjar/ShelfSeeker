@@ -10,6 +10,14 @@ import { request } from '@playwright/test';
 
 test.describe('Onboarding Flow', () => {
   test.beforeEach(async ({ page }) => {
+    // Capture browser console logs to diagnose CI issues
+    page.on('console', msg => {
+      console.log(`BROWSER ${msg.type()}: ${msg.text()}`);
+    });
+    page.on('pageerror', err => {
+      console.log(`BROWSER ERROR: ${err.message}`);
+    });
+
     // Clear all browser cookies
     await page.context().clearCookies();
 
