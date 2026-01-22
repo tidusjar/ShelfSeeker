@@ -648,10 +648,18 @@ export class ConfigService {
    */
   async resetOnboarding(): Promise<void> {
     try {
+      // Reset entire config to defaults
       this.db.data = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
       await this.db.write();
-      logger.info('✓ Onboarding reset to defaults');
+
+      // Force reload from disk to ensure consistency
+      await this.db.read();
+
+      logger.info('✓ Onboarding reset to defaults', {
+        onboarding: this.db.data.onboarding
+      });
     } catch (error) {
+      logger.error('Failed to reset onboarding:', error);
       if (error instanceof Error && error.message.includes('EACCES')) {
         throw new Error('Failed to reset onboarding state: Permission denied');
       }
