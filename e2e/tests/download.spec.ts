@@ -12,7 +12,10 @@ test.describe('Download Flow', () => {
     await homePage.navigate();
     await configureIrcForTest(page);
     await homePage.waitForConnected();
-    
+
+    // Wait a bit for everything to stabilize
+    await page.waitForTimeout(500);
+
     // Search and download
     await homePage.search('dune');
     await resultsPage.waitForResults();

@@ -41,6 +41,13 @@ export interface DownloaderConfig {
   torrent: Downloader[];
 }
 
+export interface OnboardingState {
+  completed: boolean;
+  skipped: boolean;
+  lastStep: number; // 0-3
+  completedAt?: string; // ISO timestamp
+}
+
 export interface AppConfig {
   version: string;
   general: GeneralConfig;
@@ -51,6 +58,7 @@ export interface AppConfig {
   };
   downloaders: DownloaderConfig;
   ui: UiConfig;
+  onboarding: OnboardingState;
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -85,6 +93,11 @@ const DEFAULT_CONFIG: AppConfig = {
   ui: {
     theme: 'dark',
     maxResults: 100,
+  },
+  onboarding: {
+    completed: false,
+    skipped: false,
+    lastStep: 0,
   },
 };
 
@@ -135,6 +148,13 @@ export class ConfigService {
         if (!data.downloaders) {
           logger.info('  Migrating config: Adding downloaders section');
           data.downloaders = DEFAULT_CONFIG.downloaders;
+          await this.db.write();
+        }
+
+        // Migrate old configs that don't have onboarding section
+        if (!data.onboarding) {
+          logger.info('  Migrating config: Adding onboarding section');
+          data.onboarding = DEFAULT_CONFIG.onboarding;
           await this.db.write();
         }
       } catch (parseError) {
@@ -561,5 +581,89 @@ export class ConfigService {
     await this.db.write();
 
     logger.info('✓ Deleted usenet downloader', { name });
+  }
+
+  // ============================================================================
+  // ONBOARDING MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Get onboarding state
+   */
+  getOnboardingState(): OnboardingState {
+    return JSON.parse(JSON.stringify(this.db.data.onboarding));
+  }
+
+  /**
+   * Update onboarding state (supports partial updates)
+   */
+  async updateOnboardingState(updates: Partial<OnboardingState>): Promise<void> {
+    try {
+      Object.assign(this.db.data.onboarding, updates);
+      await this.db.write();
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('EACCES')) {
+        throw new Error('Failed to save onboarding state: Permission denied');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Mark onboarding as complete
+   */
+  async completeOnboarding(): Promise<void> {
+    try {
+      this.db.data.onboarding.completed = true;
+      this.db.data.onboarding.completedAt = new Date().toISOString();
+      await this.db.write();
+      logger.info('✓ Onboarding completed');
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('EACCES')) {
+        throw new Error('Failed to save onboarding state: Permission denied');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Mark onboarding as skipped
+   */
+  async skipOnboarding(): Promise<void> {
+    try {
+      this.db.data.onboarding.completed = true;
+      this.db.data.onboarding.skipped = true;
+      await this.db.write();
+      logger.info('✓ Onboarding skipped');
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('EACCES')) {
+        throw new Error('Failed to save onboarding state: Permission denied');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Reset onboarding state (for testing)
+   */
+  async resetOnboarding(): Promise<void> {
+    try {
+      // Reset entire config to defaults
+      this.db.data = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      await this.db.write();
+
+      // Force reload from disk to ensure consistency
+      await this.db.read();
+
+      logger.info('✓ Onboarding reset to defaults', {
+        onboarding: this.db.data.onboarding
+      });
+    } catch (error) {
+      logger.error('Failed to reset onboarding:', error);
+      if (error instanceof Error && error.message.includes('EACCES')) {
+        throw new Error('Failed to reset onboarding state: Permission denied');
+      }
+      throw error;
+    }
   }
 }

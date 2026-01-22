@@ -103,16 +103,17 @@ export class MockNewznabServer {
    */
   private handleSearch(req: Request, res: Response): void {
     const { q } = req.query;
-    
+
     if (!q || typeof q !== 'string') {
-      return res.status(400).send('Missing query parameter');
+      res.status(400).send('Missing query parameter');
+      return;
     }
 
     const results = getNzbResults(q);
     console.log(`[MockNewznab] Search "${q}": ${results.length} results`);
 
     const xml = generateNewznabXml(results, this.port);
-    
+
     res.type('application/xml');
     res.send(xml);
   }
@@ -122,16 +123,17 @@ export class MockNewznabServer {
    */
   private handleGet(req: Request, res: Response): void {
     const { id } = req.query;
-    
+
     if (!id || typeof id !== 'string') {
-      return res.status(400).send('Missing id parameter');
+      res.status(400).send('Missing id parameter');
+      return;
     }
 
     console.log(`[MockNewznab] Download NZB: ${id}`);
 
     // Generate mock NZB file
     const nzbContent = generateNzbFile(id, `book-${id}.nzb`);
-    
+
     res.type('application/x-nzb');
     res.setHeader('Content-Disposition', `attachment; filename="${id}.nzb"`);
     res.send(nzbContent);

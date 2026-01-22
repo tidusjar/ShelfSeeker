@@ -7,7 +7,8 @@ import type {
   ConfigUpdateResult,
   NzbProvider,
   Downloader,
-  SystemInfo
+  SystemInfo,
+  OnboardingState
 } from './types';
 
 const API_BASE = '/api';
@@ -244,5 +245,41 @@ export const api = {
     // This would use WebSocket in production
     // For now, returning a cleanup function
     return () => {};
+  },
+
+  // Onboarding Management
+  async getOnboardingStatus(): Promise<ApiResponse<OnboardingState>> {
+    const response = await fetch(`${API_BASE}/onboarding/status`);
+    return response.json();
+  },
+
+  async updateOnboardingProgress(step: number): Promise<ApiResponse<{ message: string }>> {
+    const response = await fetch(`${API_BASE}/onboarding/progress`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lastStep: step }),
+    });
+    return response.json();
+  },
+
+  async completeOnboarding(): Promise<ApiResponse<{ message: string }>> {
+    const response = await fetch(`${API_BASE}/onboarding/complete`, {
+      method: 'POST',
+    });
+    return response.json();
+  },
+
+  async skipOnboarding(): Promise<ApiResponse<{ message: string }>> {
+    const response = await fetch(`${API_BASE}/onboarding/skip`, {
+      method: 'POST',
+    });
+    return response.json();
+  },
+
+  async resetOnboarding(): Promise<ApiResponse<{ message: string }>> {
+    const response = await fetch(`${API_BASE}/onboarding/reset`, {
+      method: 'POST',
+    });
+    return response.json();
   },
 };

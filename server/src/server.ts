@@ -554,14 +554,80 @@ app.post('/api/downloaders/send', async (req, res) => {
       return res.json({ success: false, error: 'Unknown downloader type' });
     }
 
-    res.json({ 
-      success: true, 
-      data: { 
+    res.json({
+      success: true,
+      data: {
         message: `Sent to ${downloader.name}`,
-        downloaderType: downloader.type 
-      } 
+        downloaderType: downloader.type
+      }
     });
   } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// ============================================================================
+// ONBOARDING ENDPOINTS
+// ============================================================================
+
+// Get onboarding status
+app.get('/api/onboarding/status', (req, res) => {
+  try {
+    const onboardingState = configService.getOnboardingState();
+    console.log('[Server] GET /api/onboarding/status - returning:', onboardingState);
+    res.json({ success: true, data: onboardingState });
+  } catch (error) {
+    console.log('[Server] GET /api/onboarding/status - error:', error);
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Update onboarding progress
+app.put('/api/onboarding/progress', async (req, res) => {
+  try {
+    const { lastStep } = req.body;
+
+    if (typeof lastStep !== 'number' || lastStep < 0 || lastStep > 3) {
+      return res.json({ success: false, error: 'Invalid step number' });
+    }
+
+    await configService.updateOnboardingState({ lastStep });
+    res.json({ success: true, data: { message: 'Progress updated' } });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Complete onboarding
+app.post('/api/onboarding/complete', async (req, res) => {
+  try {
+    await configService.completeOnboarding();
+    res.json({ success: true, data: { message: 'Onboarding completed' } });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Skip onboarding
+app.post('/api/onboarding/skip', async (req, res) => {
+  try {
+    await configService.skipOnboarding();
+    res.json({ success: true, data: { message: 'Onboarding skipped' } });
+  } catch (error) {
+    res.json({ success: false, error: (error as Error).message });
+  }
+});
+
+// Reset onboarding (for testing)
+app.post('/api/onboarding/reset', async (req, res) => {
+  try {
+    console.log('[Server] POST /api/onboarding/reset - resetting onboarding');
+    await configService.resetOnboarding();
+    const newState = configService.getOnboardingState();
+    console.log('[Server] POST /api/onboarding/reset - new state:', newState);
+    res.json({ success: true, data: { message: 'Onboarding reset' } });
+  } catch (error) {
+    console.log('[Server] POST /api/onboarding/reset - error:', error);
     res.json({ success: false, error: (error as Error).message });
   }
 });

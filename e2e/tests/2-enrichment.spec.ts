@@ -1,14 +1,21 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, request } from '@playwright/test';
 import { HomePage, SearchResultsPage } from '../helpers/page-objects';
 import { configureIrcForTest } from '../helpers/test-helpers';
 
 /**
  * E2E Tests for Search Result Enrichment
- * 
+ *
  * These tests verify that search results are properly enriched with metadata
  * from OpenLibrary API (mocked in test environment).
  */
 test.describe('Search Result Enrichment', () => {
+  test.beforeEach(async () => {
+    // Ensure onboarding is completed so we don't get redirected to onboarding screen
+    const apiContext = await request.newContext();
+    await apiContext.post('http://localhost:3001/api/onboarding/complete');
+    await apiContext.dispose();
+  });
+
   test('should enrich search results with OpenLibrary metadata', async ({ page }) => {
     const homePage = new HomePage(page);
     const resultsPage = new SearchResultsPage(page);
@@ -214,11 +221,11 @@ test.describe('Search Result Enrichment', () => {
     await page.waitForTimeout(3000);
 
     const firstCard = page.locator('[data-testid="search-result-card"]').first();
-    
+
     // Should have either a cover image or a placeholder
     const hasCover = await firstCard.locator('[data-testid="book-cover-image"]').isVisible().catch(() => false);
     const hasPlaceholder = await firstCard.locator('[data-testid="book-cover-placeholder"]').isVisible().catch(() => false);
-    
+
     expect(hasCover || hasPlaceholder).toBe(true);
   });
 

@@ -242,8 +242,8 @@ export class MockIrcServer {
         
         const fileStream = fs.createReadStream(filepath);
         
-        fileStream.on('data', (chunk: Buffer) => {
-          dataSocket.write(chunk);
+        fileStream.on('data', (chunk: Buffer | string) => {
+          dataSocket.write(chunk as Buffer);
         });
 
         fileStream.on('end', () => {

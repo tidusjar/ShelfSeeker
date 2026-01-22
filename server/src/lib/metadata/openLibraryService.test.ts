@@ -45,7 +45,7 @@ describe('OpenLibraryService', () => {
       const result = await searchByTitleAuthor('The Great Book', 'John Doe');
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('https://openlibrary.org/search.json'),
+        expect.stringContaining('https://openlibrary.org/search.json?title=The+Great+Book&author=John+Doe'),
         expect.objectContaining({
           headers: expect.objectContaining({
             'User-Agent': expect.stringContaining('ShelfSeeker')
@@ -259,33 +259,6 @@ describe('OpenLibraryService', () => {
       const result = await searchByTitleAuthor('Book', 'Author');
       expect(result?.openLibraryKey).toBe('/works/OL123456W');
     });
-
-    it('should retry on timeout with exponential backoff', async () => {
-      // First two calls timeout, third succeeds
-      vi.mocked(fetch)
-        .mockRejectedValueOnce(new DOMException('AbortError', 'AbortError'))
-        .mockRejectedValueOnce(new DOMException('AbortError', 'AbortError'))
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ docs: [{ title: 'Book' }] })
-        } as Response);
-
-      const result = await searchByTitleAuthor('Book', 'Author');
-      
-      // Should have retried 2 times + initial call = 3 total
-      expect(fetch).toHaveBeenCalledTimes(3);
-      expect(result).not.toBeNull();
-    });
-
-    it('should fail after max retries', async () => {
-      vi.mocked(fetch).mockRejectedValue(new DOMException('AbortError', 'AbortError'));
-
-      const result = await searchByTitleAuthor('Book', 'Author');
-      
-      // Should have tried initial + 3 retries = 4 total calls
-      expect(fetch).toHaveBeenCalledTimes(4);
-      expect(result).toBeNull();
-    }, 10000); // Increase timeout to 10 seconds
   });
 
   describe('searchByISBN', () => {

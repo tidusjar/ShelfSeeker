@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ShelfSeeker Onboarding - Step 2</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col items-center">
+<div class="w-full max-w-[960px] flex flex-col grow px-6 py-12">
+<!-- Progress Bar Section -->
+<div class="w-full max-w-2xl mx-auto mb-10">
+<div class="flex flex-col gap-3">
+<div class="flex gap-6 justify-between items-end">
+<p class="text-slate-600 dark:text-slate-400 text-sm font-medium uppercase tracking-wider">Step 2 of 3</p>
+<p class="text-primary text-sm font-bold leading-normal">66% Complete</p>
+</div>
+<div class="rounded-full bg-slate-200 dark:bg-slate-800 h-2 overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 66%;"></div>
+</div>
+</div>
+</div>
+<!-- Headline Section -->
+<div class="text-center mb-12">
+<h1 class="text-slate-900 dark:text-white tracking-tight text-[40px] font-bold leading-tight pb-3">Configure Search Sources</h1>
+<p class="text-slate-600 dark:text-slate-400 text-lg max-w-xl mx-auto">
+                Enable at least one protocol to start searching for ebooks. You can always add more later in settings.
+            </p>
+</div>
+<!-- Source Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+<!-- IRC Card -->
+<div class="flex flex-col bg-white dark:bg-[#1c2333] border border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-all hover:border-primary/50 group">
+<div class="w-full h-40 bg-slate-100 dark:bg-slate-800/50 rounded-lg mb-6 flex items-center justify-center overflow-hidden">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover opacity-80 group-hover:opacity-100 transition-opacity" data-alt="Technical illustration of IRC network nodes" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDlSQ8V9ly7LKKgjN3r1BUUxi59J3nzvU6fIEtyeK7dVhNQDRagGCSHIaI6H3uEuprSNCFXZFsC_q9eP9jeJm5XcYwxbpcUyw7Zro52d9gQi-Dc2R8OsrecUWZeYH9CKCuywLRO6wXTweGUAgZyD7F66LTya4P_urNsedkHobW_zZpPZPG1PLKmfslStbIDDYFXMoiGy-YjGHEZns293IiyvEM415KIDAgTeSOej8yoG2KVW062Vn-7D9LRPIQ1H5dJtdyvGakoidtM');">
+</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-xl font-bold text-slate-900 dark:text-white">IRC Protocol</h2>
+<span class="material-symbols-outlined text-slate-400">cloud_download</span>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
+                        High availability, direct downloads from Libgen and Undernet servers. Great for speed.
+                    </p>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+<span class="text-xs font-semibold uppercase tracking-widest text-slate-500">Enable Source</span>
+<button class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-300 dark:bg-slate-700">
+<span class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+</div>
+<!-- Newznab Card -->
+<div class="flex flex-col bg-white dark:bg-[#1c2333] border border-primary/40 ring-1 ring-primary/40 rounded-xl p-6 transition-all shadow-lg shadow-primary/5 group">
+<div class="w-full h-40 bg-slate-100 dark:bg-slate-800/50 rounded-lg mb-6 flex items-center justify-center overflow-hidden">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover opacity-80 group-hover:opacity-100 transition-opacity" data-alt="Digital grid representing Usenet binary indexes" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAPve9jflvbCxeCAmCv2vicZCCnwSubT3DclJ9q217PNB4sqfdmF1ihk8wR-eFEYmZR7M_21r5-6BIRPO13VeuTeAuLWv6_nmHXEo8vCP9sWq7gNlPwdcVuHcL4JrmEN448KQQz06Nibaly64_uQTaM27dCG422naNRccG55XHFfCPBGdq8NrV-GVdcDwAfph4ohCRURXgkK_eXoNdKamXBl-6Cl6dq4G01hwpSujZGgiymUm3PAAikV-AZGJX6SmOJ9uAS0MXgm6JR');">
+</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-xl font-bold text-slate-900 dark:text-white">Newznab</h2>
+<span class="material-symbols-outlined text-primary">key</span>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
+                        Premium Usenet indexing for fast, high-quality binaries. Requires a valid API key.
+                    </p>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+<span class="text-xs font-semibold uppercase tracking-widest text-primary">Enabled</span>
+<button class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-primary">
+<span class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+</div>
+<!-- Torrents Card -->
+<div class="flex flex-col bg-white dark:bg-[#1c2333] border border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-all hover:border-primary/50 group">
+<div class="w-full h-40 bg-slate-100 dark:bg-slate-800/50 rounded-lg mb-6 flex items-center justify-center overflow-hidden">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover opacity-80 group-hover:opacity-100 transition-opacity" data-alt="Abstract peer to peer networking nodes" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDKTyqRMZ-wL0GX_9favnQVhgG3rM_fP7XWwXFFQrkzrjBdGgI7rxFpoFbr4g4-O8z4E6fNu3IIwtcA2BYo7oG5H0sy4OY4fqYc24yFqVKMdvwQNWCr-FRIakpjcoyBW8gEc6pUv6drZ95J4AhSZxiGkXxkZrWB_yFmJPq7g-m-yyzacLiVPyd-SmHL5-0avPkzOEr1DrQVnz8YyUudhOnhELv6VtGMwXG5U_gFnHFqXYBh6NiM3yjLn-_CfeDUTADsM64BJXWYGQC4');">
+</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-xl font-bold text-slate-900 dark:text-white">Torrents</h2>
+<span class="material-symbols-outlined text-slate-400">hub</span>
+</div>
+<p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
+                        Global P2P sharing with a massive variety of rare and niche finds. Best for rare books.
+                    </p>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+<span class="text-xs font-semibold uppercase tracking-widest text-slate-500">Enable Source</span>
+<button class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-300 dark:bg-slate-700">
+<span class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+</div>
+</div>
+<!-- Configuration Settings (Secondary Actions) -->
+<div class="max-w-2xl mx-auto w-full grid grid-cols-1 gap-3 mb-16">
+<div class="flex items-center gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4">
+<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+<span class="material-symbols-outlined">settings</span>
+</div>
+<div class="flex-1">
+<h3 class="text-sm font-bold text-slate-900 dark:text-white leading-tight">Configure Newznab API</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Setup your indexers and keys for the enabled source.</p>
+</div>
+<button class="text-primary text-xs font-bold px-3 py-1.5 hover:bg-primary/10 rounded transition-colors">
+                    CONFIGURE
+                </button>
+</div>
+</div>
+<!-- Footer Navigation -->
+<div class="mt-auto pt-8 flex items-center justify-between border-t border-slate-200 dark:border-slate-800">
+<button class="flex items-center gap-2 px-6 py-3 text-slate-600 dark:text-slate-400 font-semibold hover:text-slate-900 dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">arrow_back</span>
+                Back
+            </button>
+<div class="flex gap-4">
+<button class="px-8 py-3 bg-primary text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg shadow-primary/20 transition-all active:scale-95">
+                    Continue to Dashboard
+                </button>
+</div>
+</div>
+</div>
+</body></html>

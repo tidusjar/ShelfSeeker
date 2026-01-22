@@ -68,6 +68,12 @@ export default async function globalSetup() {
       ui: {
         theme: 'dark',
         maxResults: 100
+      },
+      onboarding: {
+        completed: false, // Let tests control onboarding state
+        skipped: false,
+        lastStep: 0,
+        completedAt: null
       }
     };
 
