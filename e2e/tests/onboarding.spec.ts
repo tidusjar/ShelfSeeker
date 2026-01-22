@@ -37,11 +37,13 @@ test.describe('Onboarding Flow', () => {
     // Navigate to home page fresh
     await page.goto('/', { waitUntil: 'networkidle' });
 
+    // Wait for animations and async state loading to complete
+    await page.waitForTimeout(3000);
+
     // Wait for welcome screen (not just any onboarding screen)
-    // Increased timeout to account for: API call + view transition + animations (up to 2-3s)
     await page.waitForSelector('[data-testid="onboarding-welcome-subtitle"]', {
       state: 'visible',
-      timeout: 15000
+      timeout: 10000
     });
   });
 
