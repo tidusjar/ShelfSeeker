@@ -27,6 +27,9 @@ test.describe('Onboarding Flow', () => {
     const resetData = await resetResponse.json();
     console.log('Reset response:', resetData);
 
+    // Wait for file system write to complete (enrichment tests mark it as completed)
+    await page.waitForTimeout(500);
+
     // Verify the reset worked by checking onboarding status
     const statusResponse = await apiContext.get('http://localhost:3001/api/onboarding/status');
     const statusData = await statusResponse.json();
