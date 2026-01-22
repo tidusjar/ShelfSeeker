@@ -166,6 +166,7 @@ const OnboardingSourceSetup = ({
                       onChange={(e) => setIrcServer(e.target.value)}
                       placeholder="irc.irchighway.net"
                       fullWidth
+                      name="server"
                     />
                     <div className="grid grid-cols-2 gap-4">
                       <Input
@@ -174,6 +175,7 @@ const OnboardingSourceSetup = ({
                         value={ircPort}
                         onChange={(e) => setIrcPort(Number(e.target.value))}
                         fullWidth
+                        name="port"
                       />
                       <Input
                         label="Channel"
@@ -181,6 +183,7 @@ const OnboardingSourceSetup = ({
                         onChange={(e) => setIrcChannel(e.target.value)}
                         placeholder="#ebooks"
                         fullWidth
+                        name="channel"
                       />
                     </div>
                     <Input
@@ -189,6 +192,7 @@ const OnboardingSourceSetup = ({
                       onChange={(e) => setIrcSearchCommand(e.target.value)}
                       placeholder="@search"
                       fullWidth
+                      name="searchCommand"
                     />
                   </motion.div>
                 )}
@@ -239,6 +243,7 @@ const OnboardingSourceSetup = ({
                       onChange={(e) => setNzbName(e.target.value)}
                       placeholder="My NZB Indexer"
                       fullWidth
+                      name="name"
                     />
                     <Input
                       label="URL"
@@ -247,6 +252,7 @@ const OnboardingSourceSetup = ({
                       onChange={(e) => setNzbUrl(e.target.value)}
                       placeholder="https://indexer.example.com"
                       fullWidth
+                      name="url"
                     />
                     <Input
                       label="API Key"
@@ -255,6 +261,7 @@ const OnboardingSourceSetup = ({
                       onChange={(e) => setNzbApiKey(e.target.value)}
                       placeholder="Your API key"
                       fullWidth
+                      name="apiKey"
                     />
                   </motion.div>
                 )}

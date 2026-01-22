@@ -1,10 +1,10 @@
 import { forwardRef, ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 export type ButtonSize = 'small' | 'medium' | 'large';
 
-export interface ButtonProps {
+export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref'> {
   children: ReactNode;
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -26,6 +26,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled = false,
       onClick,
       type = 'button',
+      ...props
     },
     ref
   ) => {
@@ -57,6 +58,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={disabled ? undefined : { scale: 1.02 }}
         whileTap={disabled ? undefined : { scale: 0.98 }}
         transition={{ duration: 0.15 }}
+        {...props}
       >
         {children}
       </motion.button>

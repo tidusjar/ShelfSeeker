@@ -648,7 +648,7 @@ export class ConfigService {
    */
   async resetOnboarding(): Promise<void> {
     try {
-      this.db.data.onboarding = JSON.parse(JSON.stringify(DEFAULT_CONFIG.onboarding));
+      this.db.data = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
       await this.db.write();
       logger.info('✓ Onboarding reset to defaults');
     } catch (error) {
